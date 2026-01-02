@@ -36,8 +36,13 @@ $route = $_GET['route'] ?? 'inicio';
 
 switch ($route) {
     case 'empresas':
+        (new EmpresasController($db))->index();
+        break;
     case 'empresas/create':
         (new EmpresasController($db))->create();
+        break;
+    case 'empresas/list':
+        (new EmpresasController($db))->index();
         break;
     case 'empresas/edit':
         (new EmpresasController($db))->edit();

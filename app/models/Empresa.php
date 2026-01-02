@@ -103,6 +103,22 @@ class Empresa
         return $statement->execute([':id' => $id]);
     }
 
+    public static function existsByRuc(Database $db, string $ruc, ?int $excludeId = null): bool
+    {
+        $sql = 'SELECT 1 FROM empresas WHERE ruc = :ruc';
+        $params = [':ruc' => $ruc];
+
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> :id';
+            $params[':id'] = $excludeId;
+        }
+
+        $statement = $db->pdo()->prepare($sql . ' LIMIT 1');
+        $statement->execute($params);
+
+        return (bool) $statement->fetchColumn();
+    }
+    
     private static function fromRow(array $row): self
     {
         return new self(

@@ -24,6 +24,12 @@ class EmpresasController extends Controller
             $errores = $empresa->validate();
 
             if (empty($errores)) {
+                if (Empresa::existsByRuc($this->db, $empresa->ruc)) {
+                    $errores['ruc'] = 'El RUC ya está registrado para otra empresa.';
+                }
+            }
+
+            if (empty($errores)) {
                 try {
                     $empresa->save($this->db);
                     $_SESSION['flash'] = 'Empresa creada correctamente.';
@@ -37,9 +43,18 @@ class EmpresasController extends Controller
         $this->view('empresas/create', [
             'empresa' => $empresa,
             'errores' => $errores,
-            'empresas' => Empresa::all($this->db),
             'mensaje' => $mensaje,
             'modoEdicion' => false
+        ]);
+    }
+
+    public function index(): void
+    {
+        $mensaje = $this->consumeFlash();
+
+        $this->view('empresas/index', [
+            'empresas' => Empresa::all($this->db),
+            'mensaje' => $mensaje
         ]);
     }
 
@@ -61,10 +76,16 @@ class EmpresasController extends Controller
             $errores = $empresa->validate();
 
             if (empty($errores)) {
+                if (Empresa::existsByRuc($this->db, $empresa->ruc, $empresa->id)) {
+                    $errores['ruc'] = 'El RUC ya está registrado para otra empresa.';
+                }
+            }
+
+            if (empty($errores)) {
                 try {
                     $empresa->update($this->db);
                     $_SESSION['flash'] = 'Empresa actualizada correctamente.';
-                    $this->redirect('empresas/create');
+                    $this->redirect('empresas/list');
                 } catch (PDOException $e) {
                     $errores['general'] = 'No se pudo actualizar la empresa. Verifique si el RUC ya existe.';
                 }
@@ -74,7 +95,6 @@ class EmpresasController extends Controller
         $this->view('empresas/create', [
             'empresa' => $empresa,
             'errores' => $errores,
-            'empresas' => Empresa::all($this->db),
             'mensaje' => $mensaje,
             'modoEdicion' => true
         ]);
@@ -89,7 +109,7 @@ class EmpresasController extends Controller
             }
         }
 
-        $this->redirect('empresas/create');
+        $this->redirect('empresas/list');
     }
 
     private function redirect(string $route): void
