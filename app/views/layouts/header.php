@@ -25,7 +25,17 @@
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=empresas/list">Listado de empresas</a></li>
                     </ul>
                 </li>
-                <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=funcionarios/create">Funcionarios</a></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownFuncionarios" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Funcionarios
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownFuncionarios">
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=funcionarios/create">Crear funcionario</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=funcionarios/list">Listado de funcionarios</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=nacionalidades/list">Nacionalidades</a></li>
+                    </ul>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=nomina/overview">Nómina</a></li>
             </ul>
         </div>

@@ -21,7 +21,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title">Funcionarios</h5>
-                <p class="card-text">Registro y cálculo preliminar de salario neto, IPS y aguinaldo.</p>
+                <p class="card-text">Registro completo de datos personales, documentos, IPS y estado civil.</p>
                 <a href="<?php echo $baseUrl; ?>/index.php?route=funcionarios/create" class="btn btn-primary">Abrir módulo</a>
             </div>
         </div>

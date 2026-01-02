@@ -3,6 +3,7 @@
 use App\Controllers\EmpresasController;
 use App\Controllers\FuncionariosController;
 use App\Controllers\InicioController;
+use App\Controllers\NacionalidadesController;
 use App\Controllers\NominaController;
 use App\Core\Database;
 
@@ -52,6 +53,27 @@ switch ($route) {
         break;
     case 'funcionarios/create':
         (new FuncionariosController($db))->create();
+        break;
+    case 'funcionarios/list':
+        (new FuncionariosController($db))->index();
+        break;
+    case 'funcionarios/edit':
+        (new FuncionariosController($db))->edit();
+        break;
+    case 'funcionarios/delete':
+        (new FuncionariosController($db))->delete();
+        break;
+    case 'nacionalidades/create':
+        (new NacionalidadesController($db))->create();
+        break;
+    case 'nacionalidades/list':
+        (new NacionalidadesController($db))->index();
+        break;
+    case 'nacionalidades/edit':
+        (new NacionalidadesController($db))->edit();
+        break;
+    case 'nacionalidades/delete':
+        (new NacionalidadesController($db))->delete();
         break;
     case 'nomina/overview':
         (new NominaController($db))->overview();
