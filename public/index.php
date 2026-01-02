@@ -35,8 +35,15 @@ $db = new Database($config['db']);
 $route = $_GET['route'] ?? 'inicio';
 
 switch ($route) {
+    case 'empresas':
     case 'empresas/create':
         (new EmpresasController($db))->create();
+        break;
+    case 'empresas/edit':
+        (new EmpresasController($db))->edit();
+        break;
+    case 'empresas/delete':
+        (new EmpresasController($db))->delete();
         break;
     case 'funcionarios/create':
         (new FuncionariosController($db))->create();
