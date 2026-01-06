@@ -5,6 +5,9 @@ use App\Controllers\FuncionariosController;
 use App\Controllers\InicioController;
 use App\Controllers\NacionalidadesController;
 use App\Controllers\NominaController;
+use App\Controllers\AdelantosController;
+use App\Controllers\SalariosController;
+use App\Controllers\AguinaldosController;
 use App\Core\Database;
 
 session_start();
@@ -63,6 +66,18 @@ switch ($route) {
     case 'funcionarios/delete':
         (new FuncionariosController($db))->delete();
         break;
+    case 'adelantos/create':
+        (new AdelantosController($db))->create();
+        break;
+    case 'adelantos/list':
+        (new AdelantosController($db))->index();
+        break;
+    case 'adelantos/edit':
+        (new AdelantosController($db))->edit();
+        break;
+    case 'adelantos/delete':
+        (new AdelantosController($db))->delete();
+        break;
     case 'nacionalidades/create':
         (new NacionalidadesController($db))->create();
         break;
@@ -77,6 +92,12 @@ switch ($route) {
         break;
     case 'nomina/overview':
         (new NominaController($db))->overview();
+        break;
+    case 'salarios/list':
+        (new SalariosController($db))->index();
+        break;
+    case 'aguinaldos/list':
+        (new AguinaldosController($db))->index();
         break;
     default:
         (new InicioController($db))->index();

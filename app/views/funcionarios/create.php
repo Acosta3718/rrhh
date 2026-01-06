@@ -94,9 +94,25 @@ if (!empty($funcionario?->fechaNacimiento)) {
         <?php if (!empty($errores['fecha_salida'])): ?><div class="text-danger small"><?php echo $errores['fecha_salida']; ?></div><?php endif; ?>
     </div>
     <div class="col-md-4">
-        <label class="form-label">Empresa (ID) *</label>
-        <input type="number" name="empresa_id" class="form-control" min="1" value="<?php echo htmlspecialchars($funcionario->empresaId ?? ''); ?>" required>
+        <label class="form-label">Empresa *</label>
+        <select name="empresa_id" class="form-select" required>
+            <option value="">Seleccione...</option>
+            <?php foreach ($empresas as $empresa): ?>
+                <option value="<?php echo $empresa->id; ?>" <?php echo ($funcionario?->empresaId === $empresa->id) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($empresa->razonSocial); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
         <?php if (!empty($errores['empresa_id'])): ?><div class="text-danger small"><?php echo $errores['empresa_id']; ?></div><?php endif; ?>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Estado *</label>
+        <select name="estado" class="form-select" required>
+            <?php $estadoActual = $funcionario->estado ?? 'activo'; ?>
+            <option value="activo" <?php echo $estadoActual === 'activo' ? 'selected' : ''; ?>>Activo</option>
+            <option value="inactivo" <?php echo $estadoActual === 'inactivo' ? 'selected' : ''; ?>>Inactivo</option>
+        </select>
+        <?php if (!empty($errores['estado'])): ?><div class="text-danger small"><?php echo $errores['estado']; ?></div><?php endif; ?>
     </div>
     <div class="col-md-4 align-self-end">
         <div class="form-check">

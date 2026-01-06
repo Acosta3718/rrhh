@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Models\Empresa;
 use App\Models\Funcionario;
 use App\Models\Nacionalidad;    
 use DateTime;
@@ -46,16 +47,24 @@ class FuncionariosController extends Controller
             'errores' => $errores,
             'mensaje' => $mensaje,
             'modoEdicion' => $modoEdicion,
-            'nacionalidades' => Nacionalidad::all($this->db)
+            'nacionalidades' => Nacionalidad::all($this->db),
+            'empresas' => Empresa::all($this->db)
         ]);
     }
 
     public function index(): void
     {
         $mensaje = $this->consumeFlash();
+        $empresaId = isset($_GET['empresa_id']) && $_GET['empresa_id'] !== '' ? (int) $_GET['empresa_id'] : null;
+        $nombre = $_GET['nombre'] ?? null;
 
         $this->view('funcionarios/index', [
-            'funcionarios' => Funcionario::all($this->db),
+            'funcionarios' => Funcionario::search($this->db, $empresaId, $nombre),
+            'empresas' => Empresa::all($this->db),
+            'filtros' => [
+                'empresa_id' => $empresaId,
+                'nombre' => $nombre
+            ],
             'mensaje' => $mensaje
         ]);
     }
@@ -98,7 +107,8 @@ class FuncionariosController extends Controller
             'errores' => $errores,
             'mensaje' => $mensaje,
             'modoEdicion' => $modoEdicion,
-            'nacionalidades' => Nacionalidad::all($this->db)
+            'nacionalidades' => Nacionalidad::all($this->db),
+            'empresas' => Empresa::all($this->db)
         ]);
     }
 
@@ -148,6 +158,7 @@ class FuncionariosController extends Controller
             fechaNacimiento: $fechaNacimiento,
             nacionalidadId: !empty($_POST['nacionalidad_id']) ? (int) $_POST['nacionalidad_id'] : null,
             estadoCivil: $_POST['estado_civil'] ?? 'soltero',
+            estado: $_POST['estado'] ?? 'activo',
             adelanto: (float) ($_POST['adelanto'] ?? 0),
             tieneIps: isset($_POST['tiene_ips']),
             fechaSalida: $fechaSalida,

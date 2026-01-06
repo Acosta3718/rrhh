@@ -21,9 +21,11 @@ class Funcionario
         public ?int $nacionalidadId = null,
         public ?string $nacionalidadNombre = null,
         public string $estadoCivil = 'soltero',
+        public string $estado = 'activo',
         public float $adelanto = 0.0,
         public bool $tieneIps = false,
         public ?DateTime $fechaSalida = null,
+        public ?string $empresaNombre = null,
         public ?int $id = null
     ) {
     }
@@ -68,6 +70,9 @@ class Funcionario
         if (!in_array($this->estadoCivil, $estadoCivilPermitidos, true)) {
             $errores['estado_civil'] = 'Estado civil inválido';
         }
+        if (!in_array($this->estado, ['activo', 'inactivo'], true)) {
+            $errores['estado'] = 'El estado debe ser activo o inactivo';
+        }
         if ($this->adelanto < 0) {
             $errores['adelanto'] = 'El adelanto no puede ser negativo';
         }
@@ -82,8 +87,8 @@ class Funcionario
     public function save(Database $db): bool
     {
         $statement = $db->pdo()->prepare(
-            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, adelanto, tiene_ips, fecha_salida) '
-            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :adelanto, :tiene_ips, :fecha_salida)'
+            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, estado, adelanto, tiene_ips, fecha_salida) '
+            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :estado, :adelanto, :tiene_ips, :fecha_salida)'
         );
 
         $resultado = $statement->execute([
@@ -98,6 +103,7 @@ class Funcionario
             ':fecha_nacimiento' => $this->fechaNacimiento?->format('Y-m-d'),
             ':nacionalidad_id' => $this->nacionalidadId,
             ':estado_civil' => $this->estadoCivil,
+            ':estado' => $this->estado,
             ':adelanto' => $this->adelanto,
             ':tiene_ips' => $this->tieneIps ? 1 : 0,
             ':fecha_salida' => $this->fechaSalida?->format('Y-m-d')
@@ -117,7 +123,7 @@ class Funcionario
         }
 
         $statement = $db->pdo()->prepare(
-            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, adelanto = :adelanto, tiene_ips = :tiene_ips, fecha_salida = :fecha_salida WHERE id = :id'
+            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, estado = :estado, adelanto = :adelanto, tiene_ips = :tiene_ips, fecha_salida = :fecha_salida WHERE id = :id'
         );
 
         return $statement->execute([
@@ -132,6 +138,7 @@ class Funcionario
             ':fecha_nacimiento' => $this->fechaNacimiento?->format('Y-m-d'),
             ':nacionalidad_id' => $this->nacionalidadId,
             ':estado_civil' => $this->estadoCivil,
+            ':estado' => $this->estado,
             ':adelanto' => $this->adelanto,
             ':tiene_ips' => $this->tieneIps ? 1 : 0,
             ':fecha_salida' => $this->fechaSalida?->format('Y-m-d'),
@@ -141,18 +148,16 @@ class Funcionario
 
     public static function all(Database $db): array
     {
-        $statement = $db->pdo()->query(
-            'SELECT f.*, n.nombre AS nacionalidad_nombre FROM funcionarios f '
-            . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id ORDER BY f.id DESC'
-        );
-        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
-
-        return array_map(fn(array $row) => self::fromRow($row), $rows);
+        return self::search($db);
     }
 
     public static function find(Database $db, int $id): ?self
     {
-        $statement = $db->pdo()->prepare('SELECT * FROM funcionarios WHERE id = :id');
+        $statement = $db->pdo()->prepare(
+            'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre FROM funcionarios f '
+            . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
+            . 'LEFT JOIN empresas e ON f.empresa_id = e.id WHERE f.id = :id'
+        );
         $statement->execute([':id' => $id]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 
@@ -167,6 +172,40 @@ class Funcionario
     {
         $statement = $db->pdo()->prepare('DELETE FROM funcionarios WHERE id = :id');
         return $statement->execute([':id' => $id]);
+    }
+
+    public static function activosPorEmpresa(Database $db, int $empresaId): array
+    {
+        return self::search($db, $empresaId, null, 'activo');
+    }
+
+    public static function search(Database $db, ?int $empresaId = null, ?string $nombre = null, ?string $estado = null): array
+    {
+        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre FROM funcionarios f '
+            . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
+            . 'LEFT JOIN empresas e ON f.empresa_id = e.id WHERE 1=1';
+
+        $params = [];
+        if ($empresaId) {
+            $sql .= ' AND f.empresa_id = :empresa_id';
+            $params[':empresa_id'] = $empresaId;
+        }
+        if ($nombre) {
+            $sql .= ' AND f.nombre LIKE :nombre';
+            $params[':nombre'] = '%' . $nombre . '%';
+        }
+        if ($estado) {
+            $sql .= ' AND f.estado = :estado';
+            $params[':estado'] = $estado;
+        }
+
+        $sql .= ' ORDER BY f.id DESC';
+
+        $statement = $db->pdo()->prepare($sql);
+        $statement->execute($params);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn(array $row) => self::fromRow($row), $rows);
     }
 
     public static function existsByDocumento(Database $db, string $documento, ?int $excludeId = null): bool
@@ -200,9 +239,11 @@ class Funcionario
             nacionalidadId: isset($row['nacionalidad_id']) ? (int) $row['nacionalidad_id'] : null,
             nacionalidadNombre: $row['nacionalidad_nombre'] ?? null,
             estadoCivil: $row['estado_civil'] ?? 'soltero',
+            estado: $row['estado'] ?? 'activo',
             adelanto: isset($row['adelanto']) ? (float) $row['adelanto'] : 0.0,
             tieneIps: isset($row['tiene_ips']) ? (bool) $row['tiene_ips'] : false,
             fechaSalida: isset($row['fecha_salida']) && $row['fecha_salida'] ? new DateTime($row['fecha_salida']) : null,
+            empresaNombre: $row['empresa_nombre'] ?? null,
             id: isset($row['id']) ? (int) $row['id'] : null
         );
     }

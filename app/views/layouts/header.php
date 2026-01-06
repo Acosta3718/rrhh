@@ -36,6 +36,16 @@
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=nacionalidades/list">Nacionalidades</a></li>
                     </ul>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownGenerar" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Generar / Calcular
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownGenerar">
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/list">Adelanto</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=salarios/list">Salario</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/list">Aguinaldo</a></li>
+                    </ul>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=nomina/overview">Nómina</a></li>
             </ul>
         </div>
