@@ -109,6 +109,25 @@ class Adelanto
         return $row ? self::fromRow($row) : null;
     }
 
+    public static function findByFuncionarioPeriodo(Database $db, int $funcionarioId, int $anio, int $mes): ?self
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT a.*, f.nombre AS funcionario_nombre, f.nro_documento AS funcionario_documento, '
+            . 'e.razon_social AS empresa_nombre, e.ruc AS empresa_ruc, e.direccion AS empresa_direccion FROM adelantos a '
+            . 'LEFT JOIN funcionarios f ON f.id = a.funcionario_id '
+            . 'LEFT JOIN empresas e ON e.id = a.empresa_id WHERE a.funcionario_id = :funcionario_id AND a.anio = :anio AND a.mes = :mes '
+            . 'ORDER BY a.id DESC LIMIT 1'
+        );
+        $statement->execute([
+            ':funcionario_id' => $funcionarioId,
+            ':anio' => $anio,
+            ':mes' => $mes
+        ]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return $row ? self::fromRow($row) : null;
+    }
+    
     public static function deleteById(Database $db, int $id): bool
     {
         $statement = $db->pdo()->prepare('DELETE FROM adelantos WHERE id = :id');

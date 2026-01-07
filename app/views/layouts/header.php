@@ -51,7 +51,7 @@
                         Impresiones
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="navbarDropdownImpresiones">
-                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/list">Adelantos</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/prints">Adelantos</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=salarios/list">Salarios</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/list">Aguinaldos</a></li>
                     </ul>

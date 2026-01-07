@@ -81,6 +81,15 @@ switch ($route) {
     case 'adelantos/print':
         (new AdelantosController($db))->print();
         break;
+    case 'adelantos/prints':
+        (new AdelantosController($db))->prints();
+        break;
+    case 'adelantos/print-company':
+        (new AdelantosController($db))->printCompany();
+        break;
+    case 'adelantos/print-individual':
+        (new AdelantosController($db))->printIndividual();
+        break;
     case 'nacionalidades/create':
         (new NacionalidadesController($db))->create();
         break;

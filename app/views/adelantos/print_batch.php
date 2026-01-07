@@ -1,28 +1,17 @@
 <?php
 use App\Models\Adelanto;
 
-/** @var Adelanto $adelanto */
-/** @var int $copias */
-/** @var DateTime $fechaEmision */
-/** @var string $mesNombre */
+/** @var Adelanto[] $adelantos */
 /** @var array $meses */
 /** @var string $baseUrl */
 
-$empresaNombre = strtoupper($adelanto->empresaNombre ?? '');
-$empresaRuc = $adelanto->empresaRuc ?? '';
-$empresaDireccion = $adelanto->empresaDireccion ?? '';
-$funcionarioNombre = strtoupper($adelanto->funcionarioNombre ?? '');
-$funcionarioDocumento = $adelanto->funcionarioDocumento ?? '';
-$montoFormateado = number_format($adelanto->monto, 0, ',', '.');
-$fechaTexto = $fechaEmision->format('d') . ' de ' . ($meses[(int) $fechaEmision->format('n')] ?? $fechaEmision->format('F')) . ' del ' . $fechaEmision->format('Y');
-$conceptoMes = ($meses[$adelanto->mes] ?? $adelanto->mes) . ' del ' . $adelanto->anio;
 ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Impresión de adelanto</title>
+    <title>Impresión de adelantos por empresa</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -41,31 +30,13 @@ $conceptoMes = ($meses[$adelanto->mes] ?? $adelanto->mes) . ' del ' . $adelanto-
             padding: 28px;
             background: #fff;
             margin-bottom: 24px;
-            min-height: 600px;
+            min-height: 560px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-        }
-        .comprobante-duplicado {
-            min-height: 0;
-        }
-        .comprobante h2 {
-            font-size: 1.4rem;
-            margin: 0;
-        }
-        .comprobante small {
-            font-size: 0.9rem;
-        }
-        .titulo-supl {
-            letter-spacing: 0.6px;
         }
         .linea-firma {
             border-top: 1px dashed #000;
             width: 320px;
             margin: 38px auto 6px auto;
-        }
-        .text-subrayado {
-            border-bottom: 1px dashed #333;
-            display: inline-block;
-            min-width: 140px;
         }
         @media print {
             .no-print {
@@ -85,15 +56,24 @@ $conceptoMes = ($meses[$adelanto->mes] ?? $adelanto->mes) . ' del ' . $adelanto-
 <body>
     <div class="container py-3">
         <div class="print-actions d-flex gap-2 align-items-center no-print">
-            <a href="<?php echo $baseUrl; ?>/index.php?route=adelantos/list" class="btn btn-outline-secondary">Volver</a>
+            <a href="<?php echo $baseUrl; ?>/index.php?route=adelantos/prints" class="btn btn-outline-secondary">Volver</a>
             <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
-            <a class="btn btn-outline-primary" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/print&id=<?php echo $adelanto->id; ?>&duplicado=1">Imprimir con duplicado</a>
-            <button class="btn btn-success" onclick="descargarPdf()">Descargar PDF</button>
             <span class="text-muted small ms-2">Use “Guardar como PDF” en el diálogo de impresión.</span>
         </div>
 
-        <?php for ($i = 0; $i < $copias; $i++): ?>
-            <div class="comprobante <?php echo $copias > 1 ? 'comprobante-duplicado' : ''; ?>">
+        <?php foreach ($adelantos as $adelanto): ?>
+            <?php
+            $empresaNombre = strtoupper($adelanto->empresaNombre ?? '');
+            $empresaRuc = $adelanto->empresaRuc ?? '';
+            $empresaDireccion = $adelanto->empresaDireccion ?? '';
+            $funcionarioNombre = strtoupper($adelanto->funcionarioNombre ?? '');
+            $funcionarioDocumento = $adelanto->funcionarioDocumento ?? '';
+            $montoFormateado = number_format($adelanto->monto, 0, ',', '.');
+            $fechaEmision = $adelanto->creadoEn ?? new DateTime();
+            $fechaTexto = $fechaEmision->format('d') . ' de ' . ($meses[(int) $fechaEmision->format('n')] ?? $fechaEmision->format('F')) . ' del ' . $fechaEmision->format('Y');
+            $conceptoMes = ($meses[$adelanto->mes] ?? $adelanto->mes) . ' del ' . $adelanto->anio;
+            ?>
+            <div class="comprobante">
                 <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
                     <div>
                         <h2 class="fw-bold"><?php echo htmlspecialchars($empresaNombre); ?></h2>
@@ -124,18 +104,9 @@ $conceptoMes = ($meses[$adelanto->mes] ?? $adelanto->mes) . ' del ' . $adelanto-
                 <div class="text-center">
                     <div class="fw-semibold"><?php echo htmlspecialchars($funcionarioNombre); ?></div>
                     <div class="small">C.I. <?php echo htmlspecialchars($funcionarioDocumento); ?></div>
-                    <?php if ($copias > 1): ?>
-                        <div class="small text-muted mt-2"><?php echo $i === 0 ? 'ORIGINAL' : 'DUPLICADO'; ?></div>
-                    <?php endif; ?>
                 </div>
             </div>
-        <?php endfor; ?>
+        <?php endforeach; ?>
     </div>
-
-    <script>
-        function descargarPdf() {
-            window.print();
-        }
-    </script>
 </body>
 </html>

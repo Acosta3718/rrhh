@@ -212,7 +212,98 @@ class AdelantosController extends Controller
 
         require __DIR__ . '/../views/adelantos/print.php';
     }
-    
+
+    public function prints(): void
+    {
+        $mensaje = $this->consumeFlash();
+
+        $this->view('adelantos/prints', [
+            'empresas' => Empresa::all($this->db),
+            'funcionarios' => Funcionario::all($this->db),
+            'mensaje' => $mensaje
+        ]);
+    }
+
+    public function printCompany(): void
+    {
+        $empresaId = (int) ($_GET['empresa_id'] ?? 0);
+        $anio = (int) ($_GET['anio'] ?? date('Y'));
+        $mes = (int) ($_GET['mes'] ?? date('n'));
+
+        if ($empresaId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > (int) date('Y')) {
+            $_SESSION['flash'] = 'Seleccione una empresa y período válidos para imprimir.';
+            $this->redirect('adelantos/prints');
+        }
+
+        $adelantos = Adelanto::search($this->db, $empresaId, $anio, $mes);
+        if (empty($adelantos)) {
+            $_SESSION['flash'] = 'No se encontraron adelantos para la empresa y período seleccionados.';
+            $this->redirect('adelantos/prints');
+        }
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $meses = [
+            1 => 'Enero',
+            2 => 'Febrero',
+            3 => 'Marzo',
+            4 => 'Abril',
+            5 => 'Mayo',
+            6 => 'Junio',
+            7 => 'Julio',
+            8 => 'Agosto',
+            9 => 'Septiembre',
+            10 => 'Octubre',
+            11 => 'Noviembre',
+            12 => 'Diciembre',
+        ];
+
+        require __DIR__ . '/../views/adelantos/print_batch.php';
+    }
+
+    public function printIndividual(): void
+    {
+        $empresaId = (int) ($_GET['empresa_id'] ?? 0);
+        $funcionarioId = (int) ($_GET['funcionario_id'] ?? 0);
+        $anio = (int) ($_GET['anio'] ?? date('Y'));
+        $mes = (int) ($_GET['mes'] ?? date('n'));
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+
+        if ($empresaId <= 0 || $funcionarioId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > (int) date('Y')) {
+            $_SESSION['flash'] = 'Seleccione una empresa, funcionario y período válidos para imprimir.';
+            $this->redirect('adelantos/prints');
+        }
+
+        $adelanto = Adelanto::findByFuncionarioPeriodo($this->db, $funcionarioId, $anio, $mes);
+        if (!$adelanto || $adelanto->empresaId !== $empresaId) {
+            $_SESSION['flash'] = 'No se encontró un adelanto con los filtros indicados.';
+            $this->redirect('adelantos/prints');
+        }
+
+        $copias = $duplicado ? 2 : 1;
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $meses = [
+            1 => 'Enero',
+            2 => 'Febrero',
+            3 => 'Marzo',
+            4 => 'Abril',
+            5 => 'Mayo',
+            6 => 'Junio',
+            7 => 'Julio',
+            8 => 'Agosto',
+            9 => 'Septiembre',
+            10 => 'Octubre',
+            11 => 'Noviembre',
+            12 => 'Diciembre',
+        ];
+        $fechaEmision = $adelanto->creadoEn ?? new DateTime();
+        $mesNombre = $meses[$adelanto->mes] ?? (string) $adelanto->mes;
+
+        require __DIR__ . '/../views/adelantos/print.php';
+    }  
+
     private function redirect(string $route): void
     {
         $config = $GLOBALS['app_config'] ?? [];
