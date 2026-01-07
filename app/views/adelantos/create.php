@@ -16,8 +16,10 @@
                 <form method="post" class="row g-3">
                     <input type="hidden" name="modo" value="empresa">
                     <div class="col-12">
+                        <label class="form-label">Buscar empresa</label>
+                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="empresa_id">
                         <label class="form-label">Empresa *</label>
-                        <select name="empresa_id" class="form-select" required>
+                        <select name="empresa_id" id="empresa_id" class="form-select" required>
                             <option value="">Seleccione...</option>
                             <?php foreach ($empresas as $empresa): ?>
                                 <option value="<?php echo $empresa->id; ?>"><?php echo htmlspecialchars($empresa->razonSocial); ?></option>
@@ -38,7 +40,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Año *</label>
-                        <input type="number" name="anio" class="form-control" value="<?php echo date('Y'); ?>" required>
+                        <input type="number" name="anio" class="form-control" value="<?php echo date('Y'); ?>" max="<?php echo date('Y'); ?>" required>
                         <?php if (!empty($erroresEmpresa['anio'])): ?><div class="text-danger small"><?php echo $erroresEmpresa['anio']; ?></div><?php endif; ?>
                     </div>
                     <div class="col-12">
@@ -55,6 +57,8 @@
                 <form method="post" class="row g-3">
                     <input type="hidden" name="modo" value="individual">
                     <div class="col-12">
+                        <label class="form-label">Buscar funcionario</label>
+                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="funcionario_id">
                         <label class="form-label">Funcionario *</label>
                         <select name="funcionario_id" id="funcionario_id" class="form-select" required>
                             <option value="">Seleccione...</option>
@@ -83,7 +87,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Año *</label>
-                        <input type="number" name="anio" class="form-control" value="<?php echo date('Y'); ?>" required>
+                        <input type="number" name="anio" class="form-control" value="<?php echo date('Y'); ?>" max="<?php echo date('Y'); ?>" required>
                         <?php if (!empty($erroresIndividual['anio'])): ?><div class="text-danger small"><?php echo $erroresIndividual['anio']; ?></div><?php endif; ?>
                     </div>
                     <div class="col-12">
@@ -106,6 +110,7 @@
 const funcionarioSelect = document.getElementById('funcionario_id');
 const montoInput = document.getElementById('monto');
 const helpText = document.getElementById('monto-help');
+const filterInputs = document.querySelectorAll('[data-filter-target]');
 
 function actualizarMontoSugerido() {
     const option = funcionarioSelect.selectedOptions[0];
@@ -120,6 +125,22 @@ function actualizarMontoSugerido() {
         helpText.textContent = 'Seleccione un funcionario para ver el monto máximo.';
     }
 }
+
+function filtrarOpciones(input) {
+    const selectId = input.getAttribute('data-filter-target');
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    const termino = input.value.toLowerCase();
+    Array.from(select.options).forEach(option => {
+        if (!option.value) return;
+        const texto = option.textContent.toLowerCase();
+        option.hidden = !texto.includes(termino);
+    });
+}
+
+filterInputs.forEach(input => {
+    input.addEventListener('input', () => filtrarOpciones(input));
+});
 
 funcionarioSelect?.addEventListener('change', actualizarMontoSugerido);
 document.addEventListener('DOMContentLoaded', actualizarMontoSugerido);

@@ -69,6 +69,7 @@
                 <td><?php echo number_format($adelanto->monto, 0, ',', '.'); ?></td>
                 <td><?php echo htmlspecialchars($adelanto->creadoEn?->format('Y-m-d H:i') ?? ''); ?></td>
                 <td class="text-end">
+                    <a class="btn btn-sm btn-outline-primary" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/print&id=<?php echo $adelanto->id; ?>" target="_blank">Imprimir</a>
                     <a class="btn btn-sm btn-secondary" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/edit&id=<?php echo $adelanto->id; ?>">Editar</a>
                     <form action="<?php echo $baseUrl; ?>/index.php?route=adelantos/delete" method="post" class="d-inline" onsubmit="return confirm('¿Confirma eliminar el adelanto?');">
                         <input type="hidden" name="id" value="<?php echo htmlspecialchars($adelanto->id); ?>">

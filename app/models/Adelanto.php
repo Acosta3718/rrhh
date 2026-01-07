@@ -18,7 +18,10 @@ class Adelanto
         public ?int $id = null,
         public ?DateTime $creadoEn = null,
         public ?string $funcionarioNombre = null,
-        public ?string $empresaNombre = null
+        public ?string $funcionarioDocumento = null,
+        public ?string $empresaNombre = null,
+        public ?string $empresaRuc = null,
+        public ?string $empresaDireccion = null
     ) {
     }
 
@@ -37,8 +40,11 @@ class Adelanto
         if ($maxAdelanto !== null && $this->monto > $maxAdelanto) {
             $errores['monto'] = 'El monto no puede superar el adelanto configurado del funcionario';
         }
+        $anioActual = (int) date('Y');
         if ($this->anio < 2000) {
             $errores['anio'] = 'Ingrese un año válido';
+        } elseif ($this->anio > $anioActual) {
+            $errores['anio'] = 'El año no puede ser mayor al actual';
         }
         if ($this->mes < 1 || $this->mes > 12) {
             $errores['mes'] = 'Ingrese un mes válido';
@@ -92,7 +98,8 @@ class Adelanto
     public static function find(Database $db, int $id): ?self
     {
         $statement = $db->pdo()->prepare(
-            'SELECT a.*, f.nombre AS funcionario_nombre, e.razon_social AS empresa_nombre FROM adelantos a '
+            'SELECT a.*, f.nombre AS funcionario_nombre, f.nro_documento AS funcionario_documento, '
+            . 'e.razon_social AS empresa_nombre, e.ruc AS empresa_ruc, e.direccion AS empresa_direccion FROM adelantos a '
             . 'LEFT JOIN funcionarios f ON f.id = a.funcionario_id '
             . 'LEFT JOIN empresas e ON e.id = a.empresa_id WHERE a.id = :id'
         );
@@ -115,7 +122,8 @@ class Adelanto
         ?int $mes = null,
         ?string $nombre = null
     ): array {
-        $sql = 'SELECT a.*, f.nombre AS funcionario_nombre, e.razon_social AS empresa_nombre FROM adelantos a '
+        $sql = 'SELECT a.*, f.nombre AS funcionario_nombre, f.nro_documento AS funcionario_documento, '
+            . 'e.razon_social AS empresa_nombre, e.ruc AS empresa_ruc, e.direccion AS empresa_direccion FROM adelantos a '
             . 'LEFT JOIN funcionarios f ON f.id = a.funcionario_id '
             . 'LEFT JOIN empresas e ON e.id = a.empresa_id WHERE 1=1';
         $params = [];
@@ -205,7 +213,10 @@ class Adelanto
             id: isset($row['id']) ? (int) $row['id'] : null,
             creadoEn: isset($row['creado_en']) ? new DateTime($row['creado_en']) : null,
             funcionarioNombre: $row['funcionario_nombre'] ?? null,
-            empresaNombre: $row['empresa_nombre'] ?? null
+            funcionarioDocumento: $row['funcionario_documento'] ?? null,
+            empresaNombre: $row['empresa_nombre'] ?? null,
+            empresaRuc: $row['empresa_ruc'] ?? null,
+            empresaDireccion: $row['empresa_direccion'] ?? null
         );
     }
 }

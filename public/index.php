@@ -78,6 +78,9 @@ switch ($route) {
     case 'adelantos/delete':
         (new AdelantosController($db))->delete();
         break;
+    case 'adelantos/print':
+        (new AdelantosController($db))->print();
+        break;
     case 'nacionalidades/create':
         (new NacionalidadesController($db))->create();
         break;

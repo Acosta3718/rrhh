@@ -46,6 +46,16 @@
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/list">Aguinaldo</a></li>
                     </ul>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownImpresiones" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Impresiones
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownImpresiones">
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/list">Adelantos</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=salarios/list">Salarios</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/list">Aguinaldos</a></li>
+                    </ul>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=nomina/overview">Nómina</a></li>
             </ul>
         </div>

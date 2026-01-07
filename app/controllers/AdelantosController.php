@@ -50,12 +50,15 @@ class AdelantosController extends Controller
                 $empresaId = (int) ($_POST['empresa_id'] ?? 0);
                 $anio = (int) ($_POST['anio'] ?? date('Y'));
                 $mes = (int) ($_POST['mes'] ?? date('n'));
+                $anioActual = (int) date('Y');
 
                 if ($empresaId <= 0) {
                     $erroresEmpresa['empresa_id'] = 'Seleccione una empresa';
                 }
                 if ($anio < 2000) {
                     $erroresEmpresa['anio'] = 'Ingrese un año válido';
+                } elseif ($anio > $anioActual) {
+                    $erroresEmpresa['anio'] = 'El año no puede ser mayor al actual';
                 }
                 if ($mes < 1 || $mes > 12) {
                     $erroresEmpresa['mes'] = 'Seleccione un mes válido';
@@ -175,6 +178,41 @@ class AdelantosController extends Controller
         $this->redirect('adelantos/list');
     }
 
+    public function print(): void
+    {
+        $id = (int) ($_GET['id'] ?? 0);
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $adelanto = Adelanto::find($this->db, $id);
+
+        if (!$adelanto) {
+            $_SESSION['flash'] = 'Adelanto no encontrado.';
+            $this->redirect('adelantos/list');
+        }
+
+        $copias = $duplicado ? 2 : 1;
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $meses = [
+            1 => 'Enero',
+            2 => 'Febrero',
+            3 => 'Marzo',
+            4 => 'Abril',
+            5 => 'Mayo',
+            6 => 'Junio',
+            7 => 'Julio',
+            8 => 'Agosto',
+            9 => 'Septiembre',
+            10 => 'Octubre',
+            11 => 'Noviembre',
+            12 => 'Diciembre',
+        ];
+        $fechaEmision = $adelanto->creadoEn ?? new DateTime();
+        $mesNombre = $meses[$adelanto->mes] ?? (string) $adelanto->mes;
+
+        require __DIR__ . '/../views/adelantos/print.php';
+    }
+    
     private function redirect(string $route): void
     {
         $config = $GLOBALS['app_config'] ?? [];

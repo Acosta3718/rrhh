@@ -33,7 +33,7 @@
     </div>
     <div class="col-md-4">
         <label class="form-label">Año *</label>
-        <input type="number" name="anio" class="form-control" value="<?php echo htmlspecialchars($adelanto->anio); ?>" required>
+        <input type="number" name="anio" class="form-control" value="<?php echo htmlspecialchars($adelanto->anio); ?>" max="<?php echo date('Y'); ?>" required>
         <?php if (!empty($errores['anio'])): ?><div class="text-danger small"><?php echo $errores['anio']; ?></div><?php endif; ?>
     </div>
     <div class="col-md-4">
