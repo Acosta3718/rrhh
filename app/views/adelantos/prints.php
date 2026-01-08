@@ -17,14 +17,17 @@
                     <input type="hidden" name="route" value="adelantos/print-company">
                     <div class="col-12">
                         <label class="form-label">Buscar empresa</label>
-                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="empresa_id_general">
-                        <label class="form-label">Empresa *</label>
-                        <select name="empresa_id" id="empresa_id_general" class="form-select" required>
-                            <option value="">Seleccione...</option>
-                            <?php foreach ($empresas as $empresa): ?>
-                                <option value="<?php echo $empresa->id; ?>"><?php echo htmlspecialchars($empresa->razonSocial); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="empresa_search_general"
+                            placeholder="Escriba para buscar..."
+                            list="empresa_list"
+                            data-hidden-target="empresa_id_general"
+                            data-list-target="empresa_list"
+                            required
+                        >
+                        <input type="hidden" name="empresa_id" id="empresa_id_general" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Mes *</label>
@@ -39,6 +42,12 @@
                     <div class="col-md-6">
                         <label class="form-label">Año *</label>
                         <input type="number" name="anio" class="form-control" value="<?php echo date('Y'); ?>" max="<?php echo date('Y'); ?>" required>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="duplicado" value="1" id="duplicado_empresa">
+                            <label class="form-check-label" for="duplicado_empresa">Imprimir original y duplicado</label>
+                        </div>
                     </div>
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary">Imprimir empresa</button>
@@ -56,27 +65,31 @@
                     <input type="hidden" name="route" value="adelantos/print-individual">
                     <div class="col-12">
                         <label class="form-label">Buscar empresa</label>
-                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="empresa_id_individual">
-                        <label class="form-label">Empresa *</label>
-                        <select name="empresa_id" id="empresa_id_individual" class="form-select" required>
-                            <option value="">Seleccione...</option>
-                            <?php foreach ($empresas as $empresa): ?>
-                                <option value="<?php echo $empresa->id; ?>"><?php echo htmlspecialchars($empresa->razonSocial); ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="empresa_search_individual"
+                            placeholder="Escriba para buscar..."
+                            list="empresa_list"
+                            data-hidden-target="empresa_id_individual"
+                            data-list-target="empresa_list"
+                            required
+                        >
+                        <input type="hidden" name="empresa_id" id="empresa_id_individual" required>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Buscar funcionario</label>
-                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="funcionario_id_individual">
-                        <label class="form-label">Funcionario *</label>
-                        <select name="funcionario_id" id="funcionario_id_individual" class="form-select" required>
-                            <option value="">Seleccione...</option>
-                            <?php foreach ($funcionarios as $funcionario): ?>
-                                <option value="<?php echo $funcionario->id; ?>" data-empresa="<?php echo $funcionario->empresaId; ?>">
-                                    <?php echo htmlspecialchars($funcionario->nombre); ?> (<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>)
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="funcionario_search_individual"
+                            placeholder="Escriba para buscar..."
+                            list="funcionario_list"
+                            data-hidden-target="funcionario_id_individual"
+                            data-list-target="funcionario_list"
+                            required
+                        >
+                        <input type="hidden" name="funcionario_id" id="funcionario_id_individual" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Mes *</label>
@@ -105,52 +118,95 @@
     </div>
 </div>
 
-<script>
-const filterInputs = document.querySelectorAll('[data-filter-target]');
-const empresaSelectIndividual = document.getElementById('empresa_id_individual');
-const funcionarioSelect = document.getElementById('funcionario_id_individual');
+<datalist id="empresa_list">
+    <?php foreach ($empresas as $empresa): ?>
+        <option value="<?php echo htmlspecialchars($empresa->razonSocial); ?>" data-id="<?php echo $empresa->id; ?>"></option>
+    <?php endforeach; ?>
+</datalist>
+<datalist id="funcionario_list">
+    <?php foreach ($funcionarios as $funcionario): ?>
+        <option
+            value="<?php echo htmlspecialchars($funcionario->nombre); ?> (<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>)"
+            data-id="<?php echo $funcionario->id; ?>"
+            data-empresa="<?php echo $funcionario->empresaId; ?>"
+        ></option>
+    <?php endforeach; ?>
+</datalist>
 
-function filtrarOpciones(input) {
-    const selectId = input.getAttribute('data-filter-target');
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    const termino = input.value.toLowerCase();
-    Array.from(select.options).forEach(option => {
-        if (!option.value) return;
-        const texto = option.textContent.toLowerCase();
-        const coincideBusqueda = texto.includes(termino);
-        if (selectId === 'funcionario_id_individual') {
-            const empresaId = empresaSelectIndividual.value;
-            const coincideEmpresa = !empresaId || option.dataset.empresa === empresaId;
-            option.hidden = !(coincideBusqueda && coincideEmpresa);
-        } else {
-            option.hidden = !coincideBusqueda;
+<script>
+const empresaList = document.getElementById('empresa_list');
+const funcionarioList = document.getElementById('funcionario_list');
+const empresaInputIndividual = document.getElementById('empresa_search_individual');
+const funcionarioInput = document.getElementById('funcionario_search_individual');
+const forms = document.querySelectorAll('form');
+
+const funcionariosData = Array.from(funcionarioList?.options || []).map(option => ({
+    value: option.value,
+    id: option.dataset.id,
+    empresa: option.dataset.empresa
+}));
+
+function buscarOpcion(list, value) {
+    if (!list) return null;
+    return Array.from(list.options).find(option => option.value === value) || null;
+}
+
+function sincronizarInput(input) {
+    const hiddenId = input.dataset.hiddenTarget;
+    const listId = input.dataset.listTarget;
+    const hidden = document.getElementById(hiddenId);
+    const list = document.getElementById(listId);
+    const match = buscarOpcion(list, input.value.trim());
+    if (hidden) {
+        hidden.value = match?.dataset.id || '';
+    }
+    if (match) {
+        input.setCustomValidity('');
+    } else {
+        input.setCustomValidity('Seleccione una opción válida de la lista.');
+    }
+}
+
+function renderFuncionarios(empresaId) {
+    if (!funcionarioList) return;
+    funcionarioList.innerHTML = '';
+    funcionariosData.forEach(item => {
+        if (empresaId && item.empresa !== empresaId) {
+            return;
+        }
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.dataset.id = item.id;
+        option.dataset.empresa = item.empresa;
+        funcionarioList.appendChild(option);
+    });
+}
+
+document.querySelectorAll('[data-hidden-target]').forEach(input => {
+    input.addEventListener('input', () => sincronizarInput(input));
+    input.addEventListener('change', () => sincronizarInput(input));
+});
+
+empresaInputIndividual?.addEventListener('input', () => {
+    sincronizarInput(empresaInputIndividual);
+    renderFuncionarios(document.getElementById('empresa_id_individual')?.value || '');
+    if (funcionarioInput) {
+        funcionarioInput.value = '';
+        sincronizarInput(funcionarioInput);
+    }
+});
+
+forms.forEach(form => {
+    form.addEventListener('submit', event => {
+        form.querySelectorAll('[data-hidden-target]').forEach(input => sincronizarInput(input));
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
         }
     });
-}
-
-function filtrarFuncionariosPorEmpresa() {
-    const empresaId = empresaSelectIndividual.value;
-    Array.from(funcionarioSelect.options).forEach(option => {
-        if (!option.value) return;
-        const coincideEmpresa = !empresaId || option.dataset.empresa === empresaId;
-        option.hidden = !coincideEmpresa;
-    });
-    if (funcionarioSelect.value && funcionarioSelect.selectedOptions[0]?.hidden) {
-        funcionarioSelect.value = '';
-    }
-}
-
-filterInputs.forEach(input => {
-    input.addEventListener('input', () => filtrarOpciones(input));
 });
 
-empresaSelectIndividual?.addEventListener('change', () => {
-    filtrarFuncionariosPorEmpresa();
-    const input = document.querySelector('[data-filter-target="funcionario_id_individual"]');
-    if (input) {
-        filtrarOpciones(input);
-    }
+document.addEventListener('DOMContentLoaded', () => {
+    renderFuncionarios('');
 });
-document.addEventListener('DOMContentLoaded', filtrarFuncionariosPorEmpresa);
 </script>

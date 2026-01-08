@@ -229,6 +229,7 @@ class AdelantosController extends Controller
         $empresaId = (int) ($_GET['empresa_id'] ?? 0);
         $anio = (int) ($_GET['anio'] ?? date('Y'));
         $mes = (int) ($_GET['mes'] ?? date('n'));
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
 
         if ($empresaId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > (int) date('Y')) {
             $_SESSION['flash'] = 'Seleccione una empresa y período válidos para imprimir.';
@@ -243,6 +244,7 @@ class AdelantosController extends Controller
 
         $config = $GLOBALS['app_config'] ?? [];
         $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $copias = $duplicado ? 2 : 1;
         $meses = [
             1 => 'Enero',
             2 => 'Febrero',

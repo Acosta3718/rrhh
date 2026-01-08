@@ -4,6 +4,7 @@ use App\Models\Adelanto;
 /** @var Adelanto[] $adelantos */
 /** @var array $meses */
 /** @var string $baseUrl */
+/** @var int $copias */
 
 ?>
 <!DOCTYPE html>
@@ -73,20 +74,21 @@ use App\Models\Adelanto;
             $fechaTexto = $fechaEmision->format('d') . ' de ' . ($meses[(int) $fechaEmision->format('n')] ?? $fechaEmision->format('F')) . ' del ' . $fechaEmision->format('Y');
             $conceptoMes = ($meses[$adelanto->mes] ?? $adelanto->mes) . ' del ' . $adelanto->anio;
             ?>
-            <div class="comprobante">
-                <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
-                    <div>
-                        <h2 class="fw-bold"><?php echo htmlspecialchars($empresaNombre); ?></h2>
-                        <small class="fw-bold">RUC: <?php echo htmlspecialchars($empresaRuc); ?></small>
-                        <?php if (!empty($empresaDireccion)): ?>
-                            <div class="text-muted small"><?php echo htmlspecialchars($empresaDireccion); ?></div>
-                        <?php endif; ?>
+            <?php for ($i = 0; $i < $copias; $i++): ?>
+                <div class="comprobante">
+                    <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                        <div>
+                            <h2 class="fw-bold"><?php echo htmlspecialchars($empresaNombre); ?></h2>
+                            <small class="fw-bold">RUC: <?php echo htmlspecialchars($empresaRuc); ?></small>
+                            <?php if (!empty($empresaDireccion)): ?>
+                                <div class="text-muted small"><?php echo htmlspecialchars($empresaDireccion); ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="text-end small">
+                            <div class="fw-semibold text-uppercase"><?php echo htmlspecialchars($empresaDireccion ?: ''); ?></div>
+                            <div><?php echo htmlspecialchars($fechaTexto); ?></div>
+                        </div>
                     </div>
-                    <div class="text-end small">
-                        <div class="fw-semibold text-uppercase"><?php echo htmlspecialchars($empresaDireccion ?: ''); ?></div>
-                        <div><?php echo htmlspecialchars($fechaTexto); ?></div>
-                    </div>
-                </div>
 
                 <div class="mb-4">
                     <p class="mb-2">
@@ -101,11 +103,15 @@ use App\Models\Adelanto;
                 </div>
 
                 <div class="linea-firma"></div>
-                <div class="text-center">
-                    <div class="fw-semibold"><?php echo htmlspecialchars($funcionarioNombre); ?></div>
-                    <div class="small">C.I. <?php echo htmlspecialchars($funcionarioDocumento); ?></div>
+                    <div class="text-center">
+                        <div class="fw-semibold"><?php echo htmlspecialchars($funcionarioNombre); ?></div>
+                        <div class="small">C.I. <?php echo htmlspecialchars($funcionarioDocumento); ?></div>
+                        <?php if ($copias > 1): ?>
+                            <div class="small text-muted mt-2"><?php echo $i === 0 ? 'ORIGINAL' : 'DUPLICADO'; ?></div>
+                        <?php endif; ?>
+                    </div>
                 </div>
-            </div>
+            <?php endfor; ?>
         <?php endforeach; ?>
     </div>
 </body>
