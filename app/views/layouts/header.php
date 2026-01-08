@@ -56,7 +56,7 @@
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/list">Aguinaldos</a></li>
                     </ul>
                 </li>
-                <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=nomina/overview">Nómina</a></li>
+                <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=parametros">Parámetros</a></li>
             </ul>
         </div>
     </div>

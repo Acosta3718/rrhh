@@ -29,9 +29,9 @@
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title">Nómina y parámetros</h5>
-                <p class="card-text">Vista rápida de parámetros IPS, vacaciones por antigüedad y ejemplos de aguinaldo.</p>
-                <a href="<?php echo $baseUrl; ?>/index.php?route=nomina/overview" class="btn btn-primary">Abrir módulo</a>
+                <h5 class="card-title">Parámetros</h5>
+                <p class="card-text">Configura salario mínimo, aportes IPS y vacaciones por antigüedad.</p>
+                <a href="<?php echo $baseUrl; ?>/index.php?route=parametros" class="btn btn-primary">Abrir módulo</a>
             </div>
         </div>
     </div>

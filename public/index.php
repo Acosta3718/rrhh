@@ -5,6 +5,7 @@ use App\Controllers\FuncionariosController;
 use App\Controllers\InicioController;
 use App\Controllers\NacionalidadesController;
 use App\Controllers\NominaController;
+use App\Controllers\ParametrosController;
 use App\Controllers\AdelantosController;
 use App\Controllers\SalariosController;
 use App\Controllers\AguinaldosController;
@@ -104,6 +105,9 @@ switch ($route) {
         break;
     case 'nomina/overview':
         (new NominaController($db))->overview();
+        break;
+    case 'parametros':
+        (new ParametrosController($db))->index();
         break;
     case 'salarios/list':
         (new SalariosController($db))->index();
