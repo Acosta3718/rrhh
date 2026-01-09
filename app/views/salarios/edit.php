@@ -10,6 +10,27 @@ foreach ($tipos as $tipo) {
     }
 }
 $netoCalculado = $creditosTotal - $debitosTotal;
+$creditosMostrados = [];
+$debitosMostrados = [];
+$creditosDisponibles = [];
+$debitosDisponibles = [];
+
+foreach ($tipos as $tipo) {
+    $tieneMovimiento = array_key_exists($tipo->id, $movimientosPorTipo);
+    if ($tipo->tipo === 'credito') {
+        if ($tieneMovimiento) {
+            $creditosMostrados[] = $tipo;
+        } else {
+            $creditosDisponibles[] = $tipo;
+        }
+    } else {
+        if ($tieneMovimiento) {
+            $debitosMostrados[] = $tipo;
+        } else {
+            $debitosDisponibles[] = $tipo;
+        }
+    }
+}
 ?>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -59,27 +80,45 @@ $netoCalculado = $creditosTotal - $debitosTotal;
     <div class="col-12">
         <div class="card">
             <div class="card-header">Créditos</div>
-            <div class="card-body row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Salario base *</label>
-                    <input type="number" name="salario_base" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($salario->salarioBase); ?>" required>
-                    <?php if (!empty($errores['salario_base'])): ?><div class="text-danger small"><?php echo $errores['salario_base']; ?></div><?php endif; ?>
-                </div>
-                <?php foreach ($tipos as $tipo): ?>
-                    <?php if ($tipo->tipo !== 'credito') { continue; } ?>
+            <div class="card-body">
+                <div class="row g-3" id="creditos-rows">
                     <div class="col-md-4">
-                        <label class="form-label">
-                            <?php echo htmlspecialchars($tipo->descripcion); ?>
-                            <?php if ($tipo->estado === 'inactivo'): ?>
-                                <span class="badge bg-secondary">Inactivo</span>
-                            <?php endif; ?>
-                        </label>
-                        <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
-                        <?php if (!empty($errores['movimientos'][$tipo->id])): ?><div class="text-danger small"><?php echo $errores['movimientos'][$tipo->id]; ?></div><?php endif; ?>
+                        <label class="form-label">Salario base *</label>
+                        <input type="number" name="salario_base" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($salario->salarioBase); ?>" required>
+                        <?php if (!empty($errores['salario_base'])): ?><div class="text-danger small"><?php echo $errores['salario_base']; ?></div><?php endif; ?>
                     </div>
-                <?php endforeach; ?>
-                <div class="col-12 text-end">
-                    <strong>Total créditos: <?php echo number_format($creditosTotal, 0, ',', '.'); ?></strong>
+                    <?php foreach ($creditosMostrados as $tipo): ?>
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                <?php echo htmlspecialchars($tipo->descripcion); ?>
+                                <?php if ($tipo->estado === 'inactivo'): ?>
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                <?php endif; ?>
+                            </label>
+                            <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
+                            <?php if (!empty($errores['movimientos'][$tipo->id])): ?><div class="text-danger small"><?php echo $errores['movimientos'][$tipo->id]; ?></div><?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="row g-3 align-items-end mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">Agregar tipo de crédito</label>
+                        <select class="form-select js-tipo-select" id="creditos-select">
+                            <?php foreach ($creditosDisponibles as $tipo): ?>
+                                <option value="<?php echo $tipo->id; ?>" data-descripcion="<?php echo htmlspecialchars($tipo->descripcion); ?>" data-estado="<?php echo htmlspecialchars($tipo->estado); ?>">
+                                    <?php echo htmlspecialchars($tipo->descripcion); ?><?php echo $tipo->estado === 'inactivo' ? ' (Inactivo)' : ''; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-primary js-agregar-tipo" data-target="creditos">Agregar</button>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 text-end">
+                        <strong>Total créditos: <?php echo number_format($creditosTotal, 0, ',', '.'); ?></strong>
+                    </div>
                 </div>
             </div>
         </div>
@@ -88,32 +127,50 @@ $netoCalculado = $creditosTotal - $debitosTotal;
     <div class="col-12">
         <div class="card">
             <div class="card-header">Débitos</div>
-            <div class="card-body row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Adelanto</label>
-                    <input type="number" name="adelanto" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($salario->adelanto); ?>">
-                    <?php if (!empty($errores['adelanto'])): ?><div class="text-danger small"><?php echo $errores['adelanto']; ?></div><?php endif; ?>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">IPS</label>
-                    <input type="number" name="ips" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($salario->ips); ?>">
-                    <?php if (!empty($errores['ips'])): ?><div class="text-danger small"><?php echo $errores['ips']; ?></div><?php endif; ?>
-                </div>
-                <?php foreach ($tipos as $tipo): ?>
-                    <?php if ($tipo->tipo !== 'debito') { continue; } ?>
+            <div class="card-body">
+                <div class="row g-3" id="debitos-rows">
                     <div class="col-md-4">
-                        <label class="form-label">
-                            <?php echo htmlspecialchars($tipo->descripcion); ?>
-                            <?php if ($tipo->estado === 'inactivo'): ?>
-                                <span class="badge bg-secondary">Inactivo</span>
-                            <?php endif; ?>
-                        </label>
-                        <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
-                        <?php if (!empty($errores['movimientos'][$tipo->id])): ?><div class="text-danger small"><?php echo $errores['movimientos'][$tipo->id]; ?></div><?php endif; ?>
+                        <label class="form-label">Adelanto</label>
+                        <input type="number" name="adelanto" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($salario->adelanto); ?>">
+                        <?php if (!empty($errores['adelanto'])): ?><div class="text-danger small"><?php echo $errores['adelanto']; ?></div><?php endif; ?>
                     </div>
-                <?php endforeach; ?>
-                <div class="col-12 text-end">
-                    <strong>Total débitos: <?php echo number_format($debitosTotal, 0, ',', '.'); ?></strong>
+                    <div class="col-md-4">
+                        <label class="form-label">IPS</label>
+                        <input type="number" name="ips" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($salario->ips); ?>">
+                        <?php if (!empty($errores['ips'])): ?><div class="text-danger small"><?php echo $errores['ips']; ?></div><?php endif; ?>
+                    </div>
+                    <?php foreach ($debitosMostrados as $tipo): ?>
+                        <div class="col-md-4">
+                            <label class="form-label">
+                                <?php echo htmlspecialchars($tipo->descripcion); ?>
+                                <?php if ($tipo->estado === 'inactivo'): ?>
+                                    <span class="badge bg-secondary">Inactivo</span>
+                                <?php endif; ?>
+                            </label>
+                            <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
+                            <?php if (!empty($errores['movimientos'][$tipo->id])): ?><div class="text-danger small"><?php echo $errores['movimientos'][$tipo->id]; ?></div><?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="row g-3 align-items-end mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label">Agregar tipo de débito</label>
+                        <select class="form-select js-tipo-select" id="debitos-select">
+                            <?php foreach ($debitosDisponibles as $tipo): ?>
+                                <option value="<?php echo $tipo->id; ?>" data-descripcion="<?php echo htmlspecialchars($tipo->descripcion); ?>" data-estado="<?php echo htmlspecialchars($tipo->estado); ?>">
+                                    <?php echo htmlspecialchars($tipo->descripcion); ?><?php echo $tipo->estado === 'inactivo' ? ' (Inactivo)' : ''; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-outline-primary js-agregar-tipo" data-target="debitos">Agregar</button>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-12 text-end">
+                        <strong>Total débitos: <?php echo number_format($debitosTotal, 0, ',', '.'); ?></strong>
+                    </div>
                 </div>
             </div>
         </div>
@@ -124,3 +181,73 @@ $netoCalculado = $creditosTotal - $debitosTotal;
         <a href="<?php echo $baseUrl; ?>/index.php?route=salarios/list" class="btn btn-link">Cancelar</a>
     </div>
 </form>
+
+<script>
+    (() => {
+        const agregarTipo = (target) => {
+            const select = document.getElementById(`${target}-select`);
+            const rows = document.getElementById(`${target}-rows`);
+            if (!select || !rows) {
+                return;
+            }
+            const option = select.selectedOptions[0];
+            if (!option) {
+                return;
+            }
+
+            const tipoId = option.value;
+            const descripcion = option.dataset.descripcion || option.textContent;
+            const estado = option.dataset.estado || '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'col-md-4';
+
+            const label = document.createElement('label');
+            label.className = 'form-label';
+            label.textContent = descripcion;
+
+            if (estado === 'inactivo') {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-secondary ms-2';
+                badge.textContent = 'Inactivo';
+                label.appendChild(badge);
+            }
+
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.name = `movimientos[${tipoId}]`;
+            input.className = 'form-control';
+            input.min = '0';
+            input.step = '0.01';
+            input.value = '0';
+
+            wrapper.appendChild(label);
+            wrapper.appendChild(input);
+            rows.appendChild(wrapper);
+
+            option.remove();
+            if (!select.options.length) {
+                select.disabled = true;
+                const button = document.querySelector(`.js-agregar-tipo[data-target="${target}"]`);
+                if (button) {
+                    button.disabled = true;
+                }
+            }
+        };
+
+        document.querySelectorAll('.js-agregar-tipo').forEach((button) => {
+            button.addEventListener('click', () => agregarTipo(button.dataset.target));
+        });
+
+        document.querySelectorAll('.js-tipo-select').forEach((select) => {
+            if (!select.options.length) {
+                select.disabled = true;
+                const target = select.id.replace('-select', '');
+                const button = document.querySelector(`.js-agregar-tipo[data-target="${target}"]`);
+                if (button) {
+                    button.disabled = true;
+                }
+            }
+        });
+    })();
+</script>
