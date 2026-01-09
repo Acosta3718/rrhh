@@ -112,6 +112,9 @@ switch ($route) {
     case 'salarios/list':
         (new SalariosController($db))->index();
         break;
+    case 'salarios/create':
+        (new SalariosController($db))->create();
+        break;
     case 'aguinaldos/list':
         (new AguinaldosController($db))->index();
         break;
