@@ -59,6 +59,7 @@
             <th>IPS</th>
             <th>Neto</th>
             <th>Fecha</th>
+            <th class="text-end">Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -73,10 +74,17 @@
                 <td><?php echo number_format($salario->ips, 0, ',', '.'); ?></td>
                 <td><?php echo number_format($salario->salarioNeto, 0, ',', '.'); ?></td>
                 <td><?php echo htmlspecialchars($salario->creadoEn?->format('Y-m-d H:i') ?? ''); ?></td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-secondary" href="<?php echo $baseUrl; ?>/index.php?route=salarios/edit&id=<?php echo $salario->id; ?>">Editar</a>
+                    <form action="<?php echo $baseUrl; ?>/index.php?route=salarios/delete" method="post" class="d-inline" onsubmit="return confirm('¿Confirma eliminar el salario?');">
+                        <input type="hidden" name="id" value="<?php echo htmlspecialchars($salario->id); ?>">
+                        <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                    </form>
+                </td>
             </tr>
         <?php endforeach; ?>
         <?php if (empty($salarios)): ?>
-            <tr><td colspan="9" class="text-muted">No hay registros.</td></tr>
+            <tr><td colspan="10" class="text-muted">No hay registros.</td></tr>
         <?php endif; ?>
     </tbody>
 </table>

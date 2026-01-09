@@ -9,6 +9,7 @@ use App\Controllers\ParametrosController;
 use App\Controllers\AdelantosController;
 use App\Controllers\SalariosController;
 use App\Controllers\AguinaldosController;
+use App\Controllers\TiposMovimientosController;
 use App\Core\Database;
 
 session_start();
@@ -115,8 +116,26 @@ switch ($route) {
     case 'salarios/create':
         (new SalariosController($db))->create();
         break;
+    case 'salarios/edit':
+        (new SalariosController($db))->edit();
+        break;
+    case 'salarios/delete':
+        (new SalariosController($db))->delete();
+        break;
     case 'aguinaldos/list':
         (new AguinaldosController($db))->index();
+        break;
+    case 'tipos-movimientos/create':
+        (new TiposMovimientosController($db))->create();
+        break;
+    case 'tipos-movimientos/list':
+        (new TiposMovimientosController($db))->index();
+        break;
+    case 'tipos-movimientos/edit':
+        (new TiposMovimientosController($db))->edit();
+        break;
+    case 'tipos-movimientos/delete':
+        (new TiposMovimientosController($db))->delete();
         break;
     default:
         (new InicioController($db))->index();

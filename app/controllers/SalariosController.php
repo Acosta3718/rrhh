@@ -9,6 +9,8 @@ use App\Models\Empresa;
 use App\Models\Funcionario;
 use App\Models\Parametro;
 use App\Models\Salario;
+use App\Models\SalarioMovimiento;
+use App\Models\TipoMovimiento;
 use DateTime;
 
 class SalariosController extends Controller
@@ -129,6 +131,124 @@ class SalariosController extends Controller
             'mensaje' => $mensaje,
             'aporteObrero' => $aporteObrero
         ]);
+    }
+
+    public function edit(): void
+    {
+        $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
+        $salario = Salario::find($this->db, $id);
+
+        if (!$salario) {
+            $_SESSION['flash'] = 'Salario no encontrado.';
+            $this->redirect('salarios/list');
+        }
+
+        $funcionario = Funcionario::find($this->db, $salario->funcionarioId);
+        $tipos = TipoMovimiento::all($this->db);
+        $movimientos = SalarioMovimiento::listBySalario($this->db, $salario->id ?? 0);
+        $movimientosPorTipo = [];
+        foreach ($movimientos as $movimiento) {
+            $movimientosPorTipo[$movimiento->tipoMovimientoId] = $movimiento->monto;
+        }
+
+        $errores = [];
+        $mensaje = $this->consumeFlash();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $anioAnterior = $salario->anio;
+            $mesAnterior = $salario->mes;
+
+            $salario->anio = (int) ($_POST['anio'] ?? $salario->anio);
+            $salario->mes = (int) ($_POST['mes'] ?? $salario->mes);
+            $salario->salarioBase = (float) ($_POST['salario_base'] ?? 0);
+            $salario->adelanto = (float) ($_POST['adelanto'] ?? 0);
+            $salario->ips = (float) ($_POST['ips'] ?? 0);
+
+            $errores = $salario->validate();
+
+            if ($salario->adelanto < 0) {
+                $errores['adelanto'] = 'El adelanto no puede ser negativo';
+            }
+            if ($salario->ips < 0) {
+                $errores['ips'] = 'El IPS no puede ser negativo';
+            }
+
+            if (($anioAnterior !== $salario->anio || $mesAnterior !== $salario->mes)
+                && Salario::existsForPeriodExcludingId(
+                    $this->db,
+                    $salario->funcionarioId,
+                    $salario->anio,
+                    $salario->mes,
+                    $salario->id ?? 0
+                )) {
+                $errores['periodo'] = 'Ya existe un salario para este funcionario en el período seleccionado';
+            }
+
+            $movimientosInput = $_POST['movimientos'] ?? [];
+            $movimientosToSave = [];
+            $tiposMap = [];
+
+            foreach ($tipos as $tipo) {
+                $tiposMap[$tipo->id] = $tipo->tipo;
+            }
+
+            foreach ($movimientosInput as $tipoId => $monto) {
+                $tipoId = (int) $tipoId;
+                $monto = (float) $monto;
+
+                if ($monto < 0) {
+                    $errores['movimientos'][$tipoId] = 'El monto no puede ser negativo';
+                } elseif ($monto > 0) {
+                    $movimientosToSave[$tipoId] = $monto;
+                }
+            }
+
+            $creditosTotal = $salario->salarioBase;
+            $debitosTotal = $salario->adelanto + $salario->ips;
+
+            foreach ($movimientosToSave as $tipoId => $monto) {
+                if (($tiposMap[$tipoId] ?? '') === 'credito') {
+                    $creditosTotal += $monto;
+                } else {
+                    $debitosTotal += $monto;
+                }
+            }
+
+            $salario->salarioNeto = $creditosTotal - $debitosTotal;
+
+            if (empty($errores)) {
+                $salario->update($this->db);
+                SalarioMovimiento::replaceForSalario($this->db, $salario->id ?? 0, $movimientosToSave);
+                $_SESSION['flash'] = 'Salario actualizado correctamente.';
+                $this->redirect('salarios/list');
+            }
+
+            $movimientosPorTipo = $movimientosToSave;
+        }
+
+        $this->view('salarios/edit', [
+            'salario' => $salario,
+            'funcionario' => $funcionario,
+            'tipos' => $tipos,
+            'movimientosPorTipo' => $movimientosPorTipo,
+            'errores' => $errores,
+            'mensaje' => $mensaje
+        ]);
+    }
+
+    public function delete(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = (int) ($_POST['id'] ?? 0);
+            if ($id > 0) {
+                SalarioMovimiento::deleteBySalarioId($this->db, $id);
+                if (Salario::deleteById($this->db, $id)) {
+                    $_SESSION['flash'] = 'Salario eliminado correctamente.';
+                }
+            }
+        }
+
+        $this->redirect('salarios/list');
     }
 
     private function redirect(string $route): void

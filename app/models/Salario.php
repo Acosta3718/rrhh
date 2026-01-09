@@ -119,6 +119,24 @@ class Salario
         return array_map(fn(array $row) => self::fromRow($row), $rows);
     }
 
+     public static function find(Database $db, int $id): ?self
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT s.*, f.nombre AS funcionario_nombre, f.nro_documento AS funcionario_documento, '
+            . 'e.razon_social AS empresa_nombre, e.ruc AS empresa_ruc, e.direccion AS empresa_direccion FROM salarios s '
+            . 'LEFT JOIN funcionarios f ON f.id = s.funcionario_id '
+            . 'LEFT JOIN empresas e ON e.id = s.empresa_id WHERE s.id = :id'
+        );
+        $statement->execute([':id' => $id]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            return null;
+        }
+
+        return self::fromRow($row);
+    }
+
     public static function existsForPeriod(Database $db, int $funcionarioId, int $anio, int $mes): bool
     {
         $statement = $db->pdo()->prepare(
@@ -128,6 +146,22 @@ class Salario
             ':funcionario_id' => $funcionarioId,
             ':anio' => $anio,
             ':mes' => $mes
+        ]);
+
+        return (bool) $statement->fetchColumn();
+    }
+
+    public static function existsForPeriodExcludingId(Database $db, int $funcionarioId, int $anio, int $mes, int $excludeId): bool
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT 1 FROM salarios WHERE funcionario_id = :funcionario_id AND anio = :anio AND mes = :mes '
+            . 'AND id <> :id LIMIT 1'
+        );
+        $statement->execute([
+            ':funcionario_id' => $funcionarioId,
+            ':anio' => $anio,
+            ':mes' => $mes,
+            ':id' => $excludeId
         ]);
 
         return (bool) $statement->fetchColumn();
@@ -173,6 +207,34 @@ class Salario
         }
 
         return ['creados' => $creados, 'omitidos' => $omitidos];
+    }
+
+    public function update(Database $db): bool
+    {
+        if ($this->id === null) {
+            throw new \InvalidArgumentException('No se puede actualizar un salario sin identificador');
+        }
+
+        $statement = $db->pdo()->prepare(
+            'UPDATE salarios SET salario_base = :salario_base, adelanto = :adelanto, ips = :ips, '
+            . 'salario_neto = :salario_neto, anio = :anio, mes = :mes WHERE id = :id'
+        );
+
+        return $statement->execute([
+            ':salario_base' => $this->salarioBase,
+            ':adelanto' => $this->adelanto,
+            ':ips' => $this->ips,
+            ':salario_neto' => $this->salarioNeto,
+            ':anio' => $this->anio,
+            ':mes' => $this->mes,
+            ':id' => $this->id
+        ]);
+    }
+
+    public static function deleteById(Database $db, int $id): bool
+    {
+        $statement = $db->pdo()->prepare('DELETE FROM salarios WHERE id = :id');
+        return $statement->execute([':id' => $id]);
     }
 
     private static function fromRow(array $row): self

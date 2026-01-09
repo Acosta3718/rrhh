@@ -44,6 +44,8 @@
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/list">Adelanto</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=salarios/list">Salario</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/list">Aguinaldo</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=tipos-movimientos/list">Tipos créditos/débitos</a></li>
                     </ul>
                 </li>
                 <li class="nav-item dropdown">
