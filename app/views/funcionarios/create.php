@@ -14,6 +14,15 @@ if (!empty($funcionario?->fechaNacimiento)) {
     $hoy = new DateTime('today');
     $edad = $funcionario->fechaNacimiento->diff($hoy)->y;
 }
+$empresaSeleccionada = $funcionario?->empresaNombre ?? '';
+if (!$empresaSeleccionada && !empty($funcionario?->empresaId)) {
+    foreach ($empresas as $empresa) {
+        if ($empresa->id === $funcionario->empresaId) {
+            $empresaSeleccionada = $empresa->razonSocial;
+            break;
+        }
+    }
+}
 ?>
 
 <form method="post" class="row g-3 mb-4">
@@ -95,14 +104,21 @@ if (!empty($funcionario?->fechaNacimiento)) {
     </div>
     <div class="col-md-4">
         <label class="form-label">Empresa *</label>
-        <select name="empresa_id" class="form-select" required>
-            <option value="">Seleccione...</option>
+        <input
+            type="text"
+            id="empresa_search"
+            class="form-control"
+            list="empresa_list"
+            placeholder="Buscar empresa..."
+            value="<?php echo htmlspecialchars($empresaSeleccionada); ?>"
+            required
+        >
+        <input type="hidden" name="empresa_id" id="empresa_id" value="<?php echo htmlspecialchars($funcionario?->empresaId ?? ''); ?>" required>
+        <datalist id="empresa_list">
             <?php foreach ($empresas as $empresa): ?>
-                <option value="<?php echo $empresa->id; ?>" <?php echo ($funcionario?->empresaId === $empresa->id) ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($empresa->razonSocial); ?>
-                </option>
+                <option value="<?php echo htmlspecialchars($empresa->razonSocial); ?>" data-id="<?php echo $empresa->id; ?>"></option>
             <?php endforeach; ?>
-        </select>
+        </datalist>
         <?php if (!empty($errores['empresa_id'])): ?><div class="text-danger small"><?php echo $errores['empresa_id']; ?></div><?php endif; ?>
     </div>
     <div class="col-md-4">
@@ -114,11 +130,22 @@ if (!empty($funcionario?->fechaNacimiento)) {
         </select>
         <?php if (!empty($errores['estado'])): ?><div class="text-danger small"><?php echo $errores['estado']; ?></div><?php endif; ?>
     </div>
-    <div class="col-md-4 align-self-end">
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="tiene_ips" id="tiene_ips" <?php echo !empty($funcionario?->tieneIps) ? 'checked' : ''; ?>>
-            <label class="form-check-label" for="tiene_ips">Tiene IPS</label>
+    <div class="col-md-8 align-self-end">
+        <div class="d-flex flex-wrap gap-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="tiene_ips" id="tiene_ips" <?php echo !empty($funcionario?->tieneIps) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="tiene_ips">Tiene IPS</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="calcula_ips_total" id="calcula_ips_total" <?php echo !empty($funcionario?->calculaIpsTotal) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="calcula_ips_total">Calcula IPS por el total</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="calcula_ips_minimo" id="calcula_ips_minimo" <?php echo !empty($funcionario?->calculaIpsMinimo) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="calcula_ips_minimo">Calcula IPS por el mínimo</label>
+            </div>
         </div>
+        <?php if (!empty($errores['calculo_ips'])): ?><div class="text-danger small"><?php echo $errores['calculo_ips']; ?></div><?php endif; ?>
     </div>
 
     <?php if ($modoEdicion): ?>
@@ -161,4 +188,70 @@ function calcularEdad() {
 
 window.addEventListener('DOMContentLoaded', calcularEdad);
 document.getElementById('fecha_nacimiento').addEventListener('change', calcularEdad);
+
+const empresaSearch = document.getElementById('empresa_search');
+const empresaHidden = document.getElementById('empresa_id');
+const empresaList = document.getElementById('empresa_list');
+const form = document.querySelector('form');
+
+function buscarEmpresa(valor) {
+    if (!empresaList) {
+        return null;
+    }
+    return Array.from(empresaList.options).find(option => option.value === valor) || null;
+}
+
+function sincronizarEmpresa() {
+    const valor = empresaSearch.value.trim();
+    const match = buscarEmpresa(valor);
+    empresaHidden.value = match?.dataset.id || '';
+    if (match) {
+        empresaSearch.setCustomValidity('');
+    } else {
+        empresaSearch.setCustomValidity('Seleccione una empresa válida de la lista.');
+    }
+}
+
+empresaSearch?.addEventListener('input', sincronizarEmpresa);
+empresaSearch?.addEventListener('change', sincronizarEmpresa);
+
+const tieneIpsInput = document.getElementById('tiene_ips');
+const calculaIpsTotalInput = document.getElementById('calcula_ips_total');
+const calculaIpsMinimoInput = document.getElementById('calcula_ips_minimo');
+
+function actualizarIpsChecks() {
+    const tieneIps = tieneIpsInput.checked;
+    calculaIpsTotalInput.disabled = !tieneIps;
+    calculaIpsMinimoInput.disabled = !tieneIps;
+    if (!tieneIps) {
+        calculaIpsTotalInput.checked = false;
+        calculaIpsMinimoInput.checked = false;
+    }
+}
+
+function manejarIpsExclusivo(event) {
+    if (event.target === calculaIpsTotalInput && calculaIpsTotalInput.checked) {
+        calculaIpsMinimoInput.checked = false;
+    }
+    if (event.target === calculaIpsMinimoInput && calculaIpsMinimoInput.checked) {
+        calculaIpsTotalInput.checked = false;
+    }
+}
+
+tieneIpsInput?.addEventListener('change', actualizarIpsChecks);
+calculaIpsTotalInput?.addEventListener('change', manejarIpsExclusivo);
+calculaIpsMinimoInput?.addEventListener('change', manejarIpsExclusivo);
+
+document.addEventListener('DOMContentLoaded', () => {
+    sincronizarEmpresa();
+    actualizarIpsChecks();
+});
+
+form?.addEventListener('submit', (event) => {
+    sincronizarEmpresa();
+    if (!form.checkValidity()) {
+        event.preventDefault();
+        form.reportValidity();
+    }
+});
 </script>

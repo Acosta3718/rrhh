@@ -27,8 +27,12 @@ class SalariosController extends Controller
         $mes = isset($_GET['mes']) && $_GET['mes'] !== '' ? (int) $_GET['mes'] : null;
         $nombre = $_GET['nombre'] ?? null;
 
+        $salarios = Salario::search($this->db, $empresaId, $anio, $mes, $nombre);
+        $salarioIds = array_values(array_filter(array_map(static fn($salario) => $salario->id, $salarios)));
+
         $this->view('salarios/index', [
-            'salarios' => Salario::search($this->db, $empresaId, $anio, $mes, $nombre),
+            'salarios' => $salarios,
+            'movimientosTotales' => SalarioMovimiento::totalsBySalario($this->db, $salarioIds),
             'empresas' => Empresa::all($this->db),
             'filtros' => [
                 'empresa_id' => $empresaId,
@@ -49,6 +53,7 @@ class SalariosController extends Controller
         $mensaje = $this->consumeFlash();
         $parametros = Parametro::getCurrent($this->db);
         $aporteObrero = $parametros?->aporteObrero ?? 0.0;
+        $salarioMinimo = $parametros?->salarioMinimo ?? 0.0;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $modo = $_POST['modo'] ?? '';
@@ -71,7 +76,14 @@ class SalariosController extends Controller
                 }
 
                 if (empty($erroresEmpresa)) {
-                    $resultado = Salario::generarParaEmpresa($this->db, $empresaId, $anio, $mes, $aporteObrero);
+                    $resultado = Salario::generarParaEmpresa(
+                        $this->db,
+                        $empresaId,
+                        $anio,
+                        $mes,
+                        $aporteObrero,
+                        $salarioMinimo
+                    );
                     $creados = $resultado['creados'];
                     $omitidos = $resultado['omitidos'];
                     $_SESSION['flash'] = "Salarios generados: {$creados}.";
@@ -94,7 +106,12 @@ class SalariosController extends Controller
 
                 $adelanto = $funcionario?->id ? Adelanto::findByFuncionarioPeriodo($this->db, $funcionario->id, $anio, $mes) : null;
                 $montoAdelanto = $adelanto?->monto ?? 0.0;
-                $ips = $funcionario?->tieneIps ? ($funcionario->salario * $aporteObrero) : 0.0;
+                $ips = Salario::calcularIps(
+                    $funcionario,
+                    $aporteObrero,
+                    $salarioMinimo,
+                    $funcionario?->salario ?? 0.0
+                );
                 $salarioNeto = ($funcionario?->salario ?? 0) - $montoAdelanto - $ips;
 
                 $salario = new Salario(

@@ -88,14 +88,17 @@ foreach ($tipos as $tipo) {
                         <?php if (!empty($errores['salario_base'])): ?><div class="text-danger small"><?php echo $errores['salario_base']; ?></div><?php endif; ?>
                     </div>
                     <?php foreach ($creditosMostrados as $tipo): ?>
-                        <div class="col-md-4">
+                        <div class="col-md-4" data-tipo-id="<?php echo $tipo->id; ?>" data-target="creditos" data-descripcion="<?php echo htmlspecialchars($tipo->descripcion); ?>" data-estado="<?php echo htmlspecialchars($tipo->estado); ?>">
                             <label class="form-label">
                                 <?php echo htmlspecialchars($tipo->descripcion); ?>
                                 <?php if ($tipo->estado === 'inactivo'): ?>
                                     <span class="badge bg-secondary">Inactivo</span>
                                 <?php endif; ?>
                             </label>
-                            <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
+                            <div class="input-group">
+                                <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
+                                <button class="btn btn-outline-danger js-remove-tipo" type="button">Quitar</button>
+                            </div>
                             <?php if (!empty($errores['movimientos'][$tipo->id])): ?><div class="text-danger small"><?php echo $errores['movimientos'][$tipo->id]; ?></div><?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -140,14 +143,17 @@ foreach ($tipos as $tipo) {
                         <?php if (!empty($errores['ips'])): ?><div class="text-danger small"><?php echo $errores['ips']; ?></div><?php endif; ?>
                     </div>
                     <?php foreach ($debitosMostrados as $tipo): ?>
-                        <div class="col-md-4">
+                        <div class="col-md-4" data-tipo-id="<?php echo $tipo->id; ?>" data-target="debitos" data-descripcion="<?php echo htmlspecialchars($tipo->descripcion); ?>" data-estado="<?php echo htmlspecialchars($tipo->estado); ?>">
                             <label class="form-label">
                                 <?php echo htmlspecialchars($tipo->descripcion); ?>
                                 <?php if ($tipo->estado === 'inactivo'): ?>
                                     <span class="badge bg-secondary">Inactivo</span>
                                 <?php endif; ?>
                             </label>
-                            <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
+                            <div class="input-group">
+                                <input type="number" name="movimientos[<?php echo $tipo->id; ?>]" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($movimientosPorTipo[$tipo->id] ?? 0); ?>">
+                                <button class="btn btn-outline-danger js-remove-tipo" type="button">Quitar</button>
+                            </div>
                             <?php if (!empty($errores['movimientos'][$tipo->id])): ?><div class="text-danger small"><?php echo $errores['movimientos'][$tipo->id]; ?></div><?php endif; ?>
                         </div>
                     <?php endforeach; ?>
@@ -198,9 +204,25 @@ foreach ($tipos as $tipo) {
             const tipoId = option.value;
             const descripcion = option.dataset.descripcion || option.textContent;
             const estado = option.dataset.estado || '';
+            crearFilaMovimiento(rows, target, tipoId, descripcion, estado);
 
+            option.remove();
+            if (!select.options.length) {
+                select.disabled = true;
+                const button = document.querySelector(`.js-agregar-tipo[data-target="${target}"]`);
+                if (button) {
+                    button.disabled = true;
+                }
+            }
+        };
+
+            const crearFilaMovimiento = (rows, target, tipoId, descripcion, estado) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'col-md-4';
+            wrapper.dataset.tipoId = tipoId;
+            wrapper.dataset.target = target;
+            wrapper.dataset.descripcion = descripcion;
+            wrapper.dataset.estado = estado;
 
             const label = document.createElement('label');
             label.className = 'form-label';
@@ -213,6 +235,9 @@ foreach ($tipos as $tipo) {
                 label.appendChild(badge);
             }
 
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group';
+
             const input = document.createElement('input');
             input.type = 'number';
             input.name = `movimientos[${tipoId}]`;
@@ -221,22 +246,56 @@ foreach ($tipos as $tipo) {
             input.step = '0.01';
             input.value = '0';
 
-            wrapper.appendChild(label);
-            wrapper.appendChild(input);
-            rows.appendChild(wrapper);
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'btn btn-outline-danger js-remove-tipo';
+            removeButton.textContent = 'Quitar';
 
-            option.remove();
-            if (!select.options.length) {
-                select.disabled = true;
-                const button = document.querySelector(`.js-agregar-tipo[data-target="${target}"]`);
-                if (button) {
-                    button.disabled = true;
-                }
+            inputGroup.appendChild(input);
+            inputGroup.appendChild(removeButton);
+            wrapper.appendChild(label);
+            wrapper.appendChild(inputGroup);
+            rows.appendChild(wrapper);
+        };
+
+            const removerTipo = (button) => {
+            const wrapper = button.closest('[data-tipo-id]');
+            if (!wrapper) {
+                return;
             }
+            const target = wrapper.dataset.target;
+            const tipoId = wrapper.dataset.tipoId;
+            const descripcion = wrapper.dataset.descripcion || '';
+            const estado = wrapper.dataset.estado || '';
+            const select = document.getElementById(`${target}-select`);
+            const addButton = document.querySelector(`.js-agregar-tipo[data-target="${target}"]`);
+
+            if (select) {
+                const option = document.createElement('option');
+                option.value = tipoId;
+                option.dataset.descripcion = descripcion;
+                option.dataset.estado = estado;
+                option.textContent = descripcion + (estado === 'inactivo' ? ' (Inactivo)' : '');
+                select.appendChild(option);
+                select.disabled = false;
+            }
+
+            if (addButton) {
+                addButton.disabled = false;
+            }
+
+            wrapper.remove();
         };
 
         document.querySelectorAll('.js-agregar-tipo').forEach((button) => {
             button.addEventListener('click', () => agregarTipo(button.dataset.target));
+        });
+
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target instanceof HTMLElement && target.classList.contains('js-remove-tipo')) {
+                removerTipo(target);
+            }
         });
 
         document.querySelectorAll('.js-tipo-select').forEach((select) => {

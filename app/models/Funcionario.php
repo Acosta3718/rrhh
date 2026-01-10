@@ -24,6 +24,8 @@ class Funcionario
         public string $estado = 'activo',
         public float $adelanto = 0.0,
         public bool $tieneIps = false,
+        public bool $calculaIpsTotal = false,
+        public bool $calculaIpsMinimo = false,
         public ?DateTime $fechaSalida = null,
         public ?string $empresaNombre = null,
         public ?int $id = null
@@ -76,6 +78,12 @@ class Funcionario
         if ($this->adelanto < 0) {
             $errores['adelanto'] = 'El adelanto no puede ser negativo';
         }
+        if ($this->calculaIpsTotal && $this->calculaIpsMinimo) {
+            $errores['calculo_ips'] = 'Seleccione solo una forma de cálculo de IPS.';
+        }
+        if (!$this->tieneIps && ($this->calculaIpsTotal || $this->calculaIpsMinimo)) {
+            $errores['calculo_ips'] = 'Para calcular IPS debe activar la opción Tiene IPS.';
+        }
 
         if ($this->fechaSalida && !$this->fechaSalida instanceof DateTime) {
             $errores['fecha_salida'] = 'Fecha de salida inválida';
@@ -87,8 +95,8 @@ class Funcionario
     public function save(Database $db): bool
     {
         $statement = $db->pdo()->prepare(
-            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, estado, adelanto, tiene_ips, fecha_salida) '
-            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :estado, :adelanto, :tiene_ips, :fecha_salida)'
+            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, estado, adelanto, tiene_ips, calcula_ips_total, calcula_ips_minimo, fecha_salida) '
+            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :estado, :adelanto, :tiene_ips, :calcula_ips_total, :calcula_ips_minimo, :fecha_salida)'
         );
 
         $resultado = $statement->execute([
@@ -106,6 +114,8 @@ class Funcionario
             ':estado' => $this->estado,
             ':adelanto' => $this->adelanto,
             ':tiene_ips' => $this->tieneIps ? 1 : 0,
+            ':calcula_ips_total' => $this->calculaIpsTotal ? 1 : 0,
+            ':calcula_ips_minimo' => $this->calculaIpsMinimo ? 1 : 0,
             ':fecha_salida' => $this->fechaSalida?->format('Y-m-d')
         ]);
 
@@ -123,7 +133,7 @@ class Funcionario
         }
 
         $statement = $db->pdo()->prepare(
-            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, estado = :estado, adelanto = :adelanto, tiene_ips = :tiene_ips, fecha_salida = :fecha_salida WHERE id = :id'
+            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, estado = :estado, adelanto = :adelanto, tiene_ips = :tiene_ips, calcula_ips_total = :calcula_ips_total, calcula_ips_minimo = :calcula_ips_minimo, fecha_salida = :fecha_salida WHERE id = :id'
         );
 
         return $statement->execute([
@@ -141,6 +151,8 @@ class Funcionario
             ':estado' => $this->estado,
             ':adelanto' => $this->adelanto,
             ':tiene_ips' => $this->tieneIps ? 1 : 0,
+            ':calcula_ips_total' => $this->calculaIpsTotal ? 1 : 0,
+            ':calcula_ips_minimo' => $this->calculaIpsMinimo ? 1 : 0,
             ':fecha_salida' => $this->fechaSalida?->format('Y-m-d'),
             ':id' => $this->id
         ]);
@@ -242,6 +254,8 @@ class Funcionario
             estado: $row['estado'] ?? 'activo',
             adelanto: isset($row['adelanto']) ? (float) $row['adelanto'] : 0.0,
             tieneIps: isset($row['tiene_ips']) ? (bool) $row['tiene_ips'] : false,
+            calculaIpsTotal: isset($row['calcula_ips_total']) ? (bool) $row['calcula_ips_total'] : false,
+            calculaIpsMinimo: isset($row['calcula_ips_minimo']) ? (bool) $row['calcula_ips_minimo'] : false,
             fechaSalida: isset($row['fecha_salida']) && $row['fecha_salida'] ? new DateTime($row['fecha_salida']) : null,
             empresaNombre: $row['empresa_nombre'] ?? null,
             id: isset($row['id']) ? (int) $row['id'] : null

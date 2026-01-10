@@ -145,6 +145,9 @@ class FuncionariosController extends Controller
         $fechaNacimiento = !empty($_POST['fecha_nacimiento']) ? new DateTime($_POST['fecha_nacimiento']) : null;
         $fechaIngreso = !empty($_POST['fecha_ingreso']) ? new DateTime($_POST['fecha_ingreso']) : null;
         $fechaSalida = !empty($_POST['fecha_salida']) ? new DateTime($_POST['fecha_salida']) : null;
+        $tieneIps = isset($_POST['tiene_ips']);
+        $calculaIpsTotal = $tieneIps && isset($_POST['calcula_ips_total']);
+        $calculaIpsMinimo = $tieneIps && isset($_POST['calcula_ips_minimo']);
 
         return new Funcionario(
             nombre: $_POST['nombre'] ?? '',
@@ -160,7 +163,9 @@ class FuncionariosController extends Controller
             estadoCivil: $_POST['estado_civil'] ?? 'soltero',
             estado: $_POST['estado'] ?? 'activo',
             adelanto: (float) ($_POST['adelanto'] ?? 0),
-            tieneIps: isset($_POST['tiene_ips']),
+            tieneIps: $tieneIps,
+            calculaIpsTotal: $calculaIpsTotal,
+            calculaIpsMinimo: $calculaIpsMinimo,
             fechaSalida: $fechaSalida,
             id: $id
         );

@@ -54,10 +54,9 @@
             <th>Empresa</th>
             <th>Año</th>
             <th>Mes</th>
-            <th>Salario base</th>
-            <th>Adelanto</th>
-            <th>IPS</th>
-            <th>Neto</th>
+            <th>Créditos</th>
+            <th>Débitos</th>
+            <th>Total</th>
             <th>Fecha</th>
             <th class="text-end">Acciones</th>
         </tr>
@@ -69,10 +68,15 @@
                 <td><?php echo htmlspecialchars($salario->empresaNombre ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($salario->anio); ?></td>
                 <td><?php echo htmlspecialchars($salario->mes); ?></td>
-                <td><?php echo number_format($salario->salarioBase, 0, ',', '.'); ?></td>
-                <td><?php echo number_format($salario->adelanto, 0, ',', '.'); ?></td>
-                <td><?php echo number_format($salario->ips, 0, ',', '.'); ?></td>
-                <td><?php echo number_format($salario->salarioNeto, 0, ',', '.'); ?></td>
+                <?php
+                $totalesMovimiento = $movimientosTotales[$salario->id ?? 0] ?? ['creditos' => 0.0, 'debitos' => 0.0];
+                $creditos = $salario->salarioBase + $totalesMovimiento['creditos'];
+                $debitos = $salario->adelanto + $salario->ips + $totalesMovimiento['debitos'];
+                $total = $creditos - $debitos;
+                ?>
+                <td><?php echo number_format($creditos, 0, ',', '.'); ?></td>
+                <td><?php echo number_format($debitos, 0, ',', '.'); ?></td>
+                <td><?php echo number_format($total, 0, ',', '.'); ?></td>
                 <td><?php echo htmlspecialchars($salario->creadoEn?->format('Y-m-d H:i') ?? ''); ?></td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-secondary" href="<?php echo $baseUrl; ?>/index.php?route=salarios/edit&id=<?php echo $salario->id; ?>">Editar</a>
@@ -84,7 +88,7 @@
             </tr>
         <?php endforeach; ?>
         <?php if (empty($salarios)): ?>
-            <tr><td colspan="10" class="text-muted">No hay registros.</td></tr>
+            <tr><td colspan="9" class="text-muted">No hay registros.</td></tr>
         <?php endif; ?>
     </tbody>
 </table>

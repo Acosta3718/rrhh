@@ -167,7 +167,28 @@ class Salario
         return (bool) $statement->fetchColumn();
     }
 
-    public static function generarParaEmpresa(Database $db, int $empresaId, int $anio, int $mes, float $aporteObrero): array
+    public static function calcularIps(
+        ?Funcionario $funcionario,
+        float $aporteObrero,
+        float $salarioMinimo,
+        float $totalCreditos
+    ): float {
+        if (!$funcionario?->tieneIps) {
+            return 0.0;
+        }
+
+        if ($funcionario->calculaIpsTotal) {
+            return ($totalCreditos * $aporteObrero)/100;
+        }
+
+        if ($funcionario->calculaIpsMinimo) {
+            return ($salarioMinimo * $aporteObrero)/100;
+        }
+
+        return $funcionario->salario * ($aporteObrero)/100;
+    }
+
+    public static function generarParaEmpresa(Database $db, int $empresaId, int $anio, int $mes, float $aporteObrero, float $salarioMinimo): array
     {
         $creados = 0;
         $omitidos = [];
@@ -187,7 +208,7 @@ class Salario
 
             $adelanto = Adelanto::findByFuncionarioPeriodo($db, $funcionario->id ?? 0, $anio, $mes);
             $montoAdelanto = $adelanto?->monto ?? 0.0;
-            $ips = $funcionario->tieneIps ? $funcionario->salario * ($aporteObrero)/100 : 0.0;
+            $ips = self::calcularIps($funcionario, $aporteObrero, $salarioMinimo, $funcionario->salario);
             $salarioNeto = $funcionario->salario - $montoAdelanto - $ips;
 
             $salario = new self(

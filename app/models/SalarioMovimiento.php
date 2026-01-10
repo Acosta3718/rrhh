@@ -34,6 +34,36 @@ class SalarioMovimiento
         return array_map(fn(array $row) => self::fromRow($row), $rows);
     }
 
+    public static function totalsBySalario(Database $db, array $salarioIds): array
+    {
+        if (empty($salarioIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($salarioIds), '?'));
+        $statement = $db->pdo()->prepare(
+            'SELECT sm.salario_id, '
+            . 'SUM(CASE WHEN tm.tipo = "credito" THEN sm.monto ELSE 0 END) AS total_creditos, '
+            . 'SUM(CASE WHEN tm.tipo = "debito" THEN sm.monto ELSE 0 END) AS total_debitos '
+            . 'FROM salario_movimientos sm '
+            . 'INNER JOIN tipos_movimientos tm ON tm.id = sm.tipo_movimiento_id '
+            . "WHERE sm.salario_id IN ({$placeholders}) "
+            . 'GROUP BY sm.salario_id'
+        );
+        $statement->execute(array_values($salarioIds));
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $totales = [];
+
+        foreach ($rows as $row) {
+            $totales[(int) $row['salario_id']] = [
+                'creditos' => (float) $row['total_creditos'],
+                'debitos' => (float) $row['total_debitos']
+            ];
+        }
+
+        return $totales;
+    }
+
     public static function replaceForSalario(Database $db, int $salarioId, array $movimientos): void
     {
         $db->pdo()->prepare('DELETE FROM salario_movimientos WHERE salario_id = :salario_id')
