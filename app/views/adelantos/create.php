@@ -17,14 +17,13 @@
                     <input type="hidden" name="modo" value="empresa">
                     <div class="col-12">
                         <label class="form-label">Buscar empresa</label>
-                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="empresa_id">
-                        <label class="form-label">Empresa *</label>
-                        <select name="empresa_id" id="empresa_id" class="form-select" required>
-                            <option value="">Seleccione...</option>
+                        <input type="text" class="form-control mb-2" placeholder="Escriba para buscar..." list="empresa_list" id="empresa_search" required>
+                        <input type="hidden" name="empresa_id" id="empresa_id">
+                        <datalist id="empresa_list">
                             <?php foreach ($empresas as $empresa): ?>
-                                <option value="<?php echo $empresa->id; ?>"><?php echo htmlspecialchars($empresa->razonSocial); ?></option>
+                                <option value="<?php echo htmlspecialchars($empresa->razonSocial); ?>" data-id="<?php echo $empresa->id; ?>"></option>
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
                         <?php if (!empty($erroresEmpresa['empresa_id'])): ?><div class="text-danger small"><?php echo $erroresEmpresa['empresa_id']; ?></div><?php endif; ?>
                     </div>
                     <div class="col-md-6">
@@ -58,20 +57,19 @@
                     <input type="hidden" name="modo" value="individual">
                     <div class="col-12">
                         <label class="form-label">Buscar funcionario</label>
-                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="funcionario_id">
-                        <label class="form-label">Funcionario *</label>
-                        <select name="funcionario_id" id="funcionario_id" class="form-select" required>
-                            <option value="">Seleccione...</option>
+                        <input type="text" class="form-control mb-2" placeholder="Escriba para buscar..." list="funcionario_list" id="funcionario_search" required>
+                        <input type="hidden" name="funcionario_id" id="funcionario_id">
+                        <datalist id="funcionario_list">
                             <?php foreach ($funcionarios as $funcionario): ?>
                                 <option
-                                    value="<?php echo $funcionario->id; ?>"
+                                    value="<?php echo htmlspecialchars($funcionario->nombre); ?> (<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>)"
+                                    data-id="<?php echo $funcionario->id; ?>"
                                     data-monto="<?php echo htmlspecialchars($funcionario->adelanto); ?>"
                                     data-empresa="<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>"
                                 >
-                                    <?php echo htmlspecialchars($funcionario->nombre); ?> (<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>)
                                 </option>
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
                         <?php if (!empty($erroresIndividual['funcionario_id'])): ?><div class="text-danger small"><?php echo $erroresIndividual['funcionario_id']; ?></div><?php endif; ?>
                     </div>
                     <div class="col-md-6">
@@ -107,14 +105,18 @@
 </div>
 
 <script>
-const funcionarioSelect = document.getElementById('funcionario_id');
+const empresaSearch = document.getElementById('empresa_search');
+const empresaIdInput = document.getElementById('empresa_id');
+const funcionarioSearch = document.getElementById('funcionario_search');
+const funcionarioIdInput = document.getElementById('funcionario_id');
 const montoInput = document.getElementById('monto');
 const helpText = document.getElementById('monto-help');
-const filterInputs = document.querySelectorAll('[data-filter-target]');
+const empresaList = document.getElementById('empresa_list');
+const funcionarioList = document.getElementById('funcionario_list');
 
 function actualizarMontoSugerido() {
-    const option = funcionarioSelect.selectedOptions[0];
-    if (!option) return;
+    const option = buscarOpcionPorValor(funcionarioList, funcionarioSearch?.value);
+    if (!option || !funcionarioSearch) return;
     const monto = option.dataset.monto;
     const empresa = option.dataset.empresa;
     if (monto) {
@@ -126,22 +128,26 @@ function actualizarMontoSugerido() {
     }
 }
 
-function filtrarOpciones(input) {
-    const selectId = input.getAttribute('data-filter-target');
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    const termino = input.value.toLowerCase();
-    Array.from(select.options).forEach(option => {
-        if (!option.value) return;
-        const texto = option.textContent.toLowerCase();
-        option.hidden = !texto.includes(termino);
-    });
+function buscarOpcionPorValor(list, value) {
+    if (!list || !value) return null;
+    return Array.from(list.options).find(option => option.value === value) || null;
 }
 
-filterInputs.forEach(input => {
-    input.addEventListener('input', () => filtrarOpciones(input));
-});
+function actualizarEmpresaSeleccionada() {
+    const option = buscarOpcionPorValor(empresaList, empresaSearch?.value);
+    empresaIdInput.value = option?.dataset.id || '';
+}
 
-funcionarioSelect?.addEventListener('change', actualizarMontoSugerido);
-document.addEventListener('DOMContentLoaded', actualizarMontoSugerido);
+function actualizarFuncionarioSeleccionado() {
+    const option = buscarOpcionPorValor(funcionarioList, funcionarioSearch?.value);
+    funcionarioIdInput.value = option?.dataset.id || '';
+    actualizarMontoSugerido();
+}
+
+empresaSearch?.addEventListener('input', actualizarEmpresaSeleccionada);
+funcionarioSearch?.addEventListener('input', actualizarFuncionarioSeleccionado);
+document.addEventListener('DOMContentLoaded', () => {
+    actualizarEmpresaSeleccionada();
+    actualizarFuncionarioSeleccionado();
+});
 </script>

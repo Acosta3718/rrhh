@@ -17,14 +17,13 @@
                     <input type="hidden" name="modo" value="empresa">
                     <div class="col-12">
                         <label class="form-label">Buscar empresa</label>
-                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="empresa_id">
-                        <label class="form-label">Empresa *</label>
-                        <select name="empresa_id" id="empresa_id" class="form-select" required>
-                            <option value="">Seleccione...</option>
+                        <input type="text" class="form-control mb-2" placeholder="Escriba para buscar..." list="empresa_list" id="empresa_search" required>
+                        <input type="hidden" name="empresa_id" id="empresa_id">
+                        <datalist id="empresa_list">
                             <?php foreach ($empresas as $empresa): ?>
-                                <option value="<?php echo $empresa->id; ?>"><?php echo htmlspecialchars($empresa->razonSocial); ?></option>
+                                <option value="<?php echo htmlspecialchars($empresa->razonSocial); ?>" data-id="<?php echo $empresa->id; ?>"></option>
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
                         <?php if (!empty($erroresEmpresa['empresa_id'])): ?><div class="text-danger small"><?php echo $erroresEmpresa['empresa_id']; ?></div><?php endif; ?>
                     </div>
                     <div class="col-md-6">
@@ -58,21 +57,20 @@
                     <input type="hidden" name="modo" value="individual">
                     <div class="col-12">
                         <label class="form-label">Buscar funcionario</label>
-                        <input type="text" class="form-control mb-2" placeholder="Escriba para filtrar..." data-filter-target="funcionario_id">
-                        <label class="form-label">Funcionario *</label>
-                        <select name="funcionario_id" id="funcionario_id" class="form-select" required>
-                            <option value="">Seleccione...</option>
+                        <input type="text" class="form-control mb-2" placeholder="Escriba para buscar..." list="funcionario_list" id="funcionario_search" required>
+                        <input type="hidden" name="funcionario_id" id="funcionario_id">
+                        <datalist id="funcionario_list">
                             <?php foreach ($funcionarios as $funcionario): ?>
                                 <option
-                                    value="<?php echo $funcionario->id; ?>"
+                                    value="<?php echo htmlspecialchars($funcionario->nombre); ?> (<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>)"
+                                    data-id="<?php echo $funcionario->id; ?>"
                                     data-salario="<?php echo htmlspecialchars($funcionario->salario); ?>"
                                     data-ips="<?php echo $funcionario->tieneIps ? '1' : '0'; ?>"
                                     data-empresa="<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>"
                                 >
-                                    <?php echo htmlspecialchars($funcionario->nombre); ?> (<?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?>)
                                 </option>
                             <?php endforeach; ?>
-                        </select>
+                        </datalist>
                         <?php if (!empty($erroresIndividual['funcionario_id'])): ?><div class="text-danger small"><?php echo $erroresIndividual['funcionario_id']; ?></div><?php endif; ?>
                     </div>
                     <div class="col-md-6">
@@ -93,7 +91,7 @@
                     </div>
                     <div class="col-12">
                         <div class="form-text" id="salario-help">
-                            Se tomará el salario de la ficha del funcionario, se descontará el adelanto generado en el período y el IPS obrero (<?php echo number_format($aporteObrero * 100, 2, ',', '.'); ?>%) si corresponde.
+                            Se tomará el salario de la ficha del funcionario, se descontará el adelanto generado en el período y el IPS obrero (<?php echo number_format($aporteObrero ); ?>%) si corresponde.
                         </div>
                         <?php if (!empty($erroresIndividual['periodo'])): ?><div class="text-danger small"><?php echo $erroresIndividual['periodo']; ?></div><?php endif; ?>
                     </div>
@@ -107,25 +105,22 @@
 </div>
 
 <script>
-const filterInputs = document.querySelectorAll('[data-filter-target]');
-const funcionarioSelect = document.getElementById('funcionario_id');
+const empresaSearch = document.getElementById('empresa_search');
+const empresaIdInput = document.getElementById('empresa_id');
+const empresaList = document.getElementById('empresa_list');
+const funcionarioSearch = document.getElementById('funcionario_search');
+const funcionarioIdInput = document.getElementById('funcionario_id');
+const funcionarioList = document.getElementById('funcionario_list');
 const helpText = document.getElementById('salario-help');
 const aporteObrero = <?php echo json_encode($aporteObrero); ?>;
 
-function filtrarOpciones(input) {
-    const selectId = input.getAttribute('data-filter-target');
-    const select = document.getElementById(selectId);
-    if (!select) return;
-    const termino = input.value.toLowerCase();
-    Array.from(select.options).forEach(option => {
-        if (!option.value) return;
-        const texto = option.textContent.toLowerCase();
-        option.hidden = !texto.includes(termino);
-    });
+function buscarOpcionPorValor(list, value) {
+    if (!list || !value) return null;
+    return Array.from(list.options).find(option => option.value === value) || null;
 }
 
 function actualizarDetalle() {
-    const option = funcionarioSelect?.selectedOptions[0];
+    const option = buscarOpcionPorValor(funcionarioList, funcionarioSearch?.value);
     if (!option || !helpText) return;
     const salario = option.dataset.salario;
     const empresa = option.dataset.empresa;
@@ -136,10 +131,21 @@ function actualizarDetalle() {
     }
 }
 
-filterInputs.forEach(input => {
-    input.addEventListener('input', () => filtrarOpciones(input));
-});
+function actualizarEmpresaSeleccionada() {
+    const option = buscarOpcionPorValor(empresaList, empresaSearch?.value);
+    empresaIdInput.value = option?.dataset.id || '';
+}
 
-funcionarioSelect?.addEventListener('change', actualizarDetalle);
-document.addEventListener('DOMContentLoaded', actualizarDetalle);
+function actualizarFuncionarioSeleccionado() {
+    const option = buscarOpcionPorValor(funcionarioList, funcionarioSearch?.value);
+    funcionarioIdInput.value = option?.dataset.id || '';
+    actualizarDetalle();
+}
+
+empresaSearch?.addEventListener('input', actualizarEmpresaSeleccionada);
+funcionarioSearch?.addEventListener('input', actualizarFuncionarioSeleccionado);
+document.addEventListener('DOMContentLoaded', () => {
+    actualizarEmpresaSeleccionada();
+    actualizarFuncionarioSeleccionado();
+});
 </script>

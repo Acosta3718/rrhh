@@ -160,6 +160,8 @@ class SalariosController extends Controller
             $this->redirect('salarios/list');
         }
 
+        $parametros = Parametro::getCurrent($this->db);
+        $aporteObrero = $parametros?->aporteObrero ?? 0.0;
         $funcionario = Funcionario::find($this->db, $salario->funcionarioId);
         $tipos = TipoMovimiento::all($this->db);
         $movimientos = SalarioMovimiento::listBySalario($this->db, $salario->id ?? 0);
@@ -221,16 +223,21 @@ class SalariosController extends Controller
             }
 
             $creditosTotal = $salario->salarioBase;
-            $debitosTotal = $salario->adelanto + $salario->ips;
+            $debitosMovimientos = 0.0;
 
             foreach ($movimientosToSave as $tipoId => $monto) {
                 if (($tiposMap[$tipoId] ?? '') === 'credito') {
                     $creditosTotal += $monto;
                 } else {
-                    $debitosTotal += $monto;
+                    $debitosMovimientos += $monto;
                 }
             }
 
+            if ($funcionario?->tieneIps && $funcionario->calculaIpsTotal) {
+                $salario->ips = ($creditosTotal * $aporteObrero) / 100;
+            }
+
+            $debitosTotal = $salario->adelanto + $salario->ips + $debitosMovimientos;
             $salario->salarioNeto = $creditosTotal - $debitosTotal;
 
             if (empty($errores)) {
