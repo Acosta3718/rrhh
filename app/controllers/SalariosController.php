@@ -275,6 +275,123 @@ class SalariosController extends Controller
         $this->redirect('salarios/list');
     }
 
+    public function prints(): void
+    {
+        $mensaje = $this->consumeFlash();
+        $formatos = $this->formatosDisponibles();
+        $formatoSeleccionado = $this->normalizarFormato($_GET['formato'] ?? null);
+
+        $this->view('salarios/prints', [
+            'empresas' => Empresa::all($this->db),
+            'funcionarios' => Funcionario::all($this->db),
+            'mensaje' => $mensaje,
+            'formatos' => $formatos,
+            'formatoSeleccionado' => $formatoSeleccionado
+        ]);
+    }
+
+    public function printCompany(): void
+    {
+        $empresaId = (int) ($_GET['empresa_id'] ?? 0);
+        $anio = (int) ($_GET['anio'] ?? date('Y'));
+        $mes = (int) ($_GET['mes'] ?? date('n'));
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $formato = $this->normalizarFormato($_GET['formato'] ?? null);
+
+        if ($empresaId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > (int) date('Y')) {
+            $_SESSION['flash'] = 'Seleccione una empresa y período válidos para imprimir.';
+            $this->redirect('salarios/prints');
+        }
+
+        $salarios = Salario::search($this->db, $empresaId, $anio, $mes);
+        if (empty($salarios)) {
+            $_SESSION['flash'] = 'No se encontraron salarios para la empresa y período seleccionados.';
+            $this->redirect('salarios/prints');
+        }
+
+        $salarioIds = array_values(array_filter(array_map(static fn($salario) => $salario->id, $salarios)));
+        $movimientosTotales = SalarioMovimiento::totalsBySalario($this->db, $salarioIds);
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $copias = $duplicado ? 2 : 1;
+        $meses = [
+            1 => 'Enero',
+            2 => 'Febrero',
+            3 => 'Marzo',
+            4 => 'Abril',
+            5 => 'Mayo',
+            6 => 'Junio',
+            7 => 'Julio',
+            8 => 'Agosto',
+            9 => 'Septiembre',
+            10 => 'Octubre',
+            11 => 'Noviembre',
+            12 => 'Diciembre',
+        ];
+        $urlDuplicado = $baseUrl . '/index.php?route=salarios/print-company&empresa_id=' . $empresaId
+            . '&anio=' . $anio . '&mes=' . $mes . '&duplicado=1&formato=' . urlencode($formato);
+
+        $vista = match ($formato) {
+            'formato_1' => 'print_formato_1.php',
+            default => 'print_formato_1.php'
+        };
+
+        require __DIR__ . '/../views/salarios/' . $vista;
+    }
+
+    public function printIndividual(): void
+    {
+        $empresaId = (int) ($_GET['empresa_id'] ?? 0);
+        $funcionarioId = (int) ($_GET['funcionario_id'] ?? 0);
+        $anio = (int) ($_GET['anio'] ?? date('Y'));
+        $mes = (int) ($_GET['mes'] ?? date('n'));
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $formato = $this->normalizarFormato($_GET['formato'] ?? null);
+
+        if ($empresaId <= 0 || $funcionarioId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > (int) date('Y')) {
+            $_SESSION['flash'] = 'Seleccione una empresa, funcionario y período válidos para imprimir.';
+            $this->redirect('salarios/prints');
+        }
+
+        $salario = Salario::findByFuncionarioPeriodo($this->db, $funcionarioId, $anio, $mes);
+        if (!$salario || $salario->empresaId !== $empresaId) {
+            $_SESSION['flash'] = 'No se encontró un salario con los filtros indicados.';
+            $this->redirect('salarios/prints');
+        }
+
+        $movimientosTotales = SalarioMovimiento::totalsBySalario($this->db, [$salario->id ?? 0]);
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $copias = $duplicado ? 2 : 1;
+        $meses = [
+            1 => 'Enero',
+            2 => 'Febrero',
+            3 => 'Marzo',
+            4 => 'Abril',
+            5 => 'Mayo',
+            6 => 'Junio',
+            7 => 'Julio',
+            8 => 'Agosto',
+            9 => 'Septiembre',
+            10 => 'Octubre',
+            11 => 'Noviembre',
+            12 => 'Diciembre',
+        ];
+        $urlDuplicado = $baseUrl . '/index.php?route=salarios/print-individual&empresa_id=' . $empresaId
+            . '&funcionario_id=' . $funcionarioId . '&anio=' . $anio . '&mes=' . $mes
+            . '&duplicado=1&formato=' . urlencode($formato);
+        $salarios = [$salario];
+
+        $vista = match ($formato) {
+            'formato_1' => 'print_formato_1.php',
+            default => 'print_formato_1.php'
+        };
+
+        require __DIR__ . '/../views/salarios/' . $vista;
+    }
+
     private function redirect(string $route): void
     {
         $config = $GLOBALS['app_config'] ?? [];
@@ -289,5 +406,22 @@ class SalariosController extends Controller
         unset($_SESSION['flash']);
 
         return $mensaje;
+    }
+
+    private function formatosDisponibles(): array
+    {
+        return [
+            'formato_1' => 'Formato 1 - Liquidación'
+        ];
+    }
+
+    private function normalizarFormato(?string $formato): string
+    {
+        $formatos = $this->formatosDisponibles();
+        if ($formato && isset($formatos[$formato])) {
+            return $formato;
+        }
+
+        return (string) array_key_first($formatos);
     }
 }

@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Impresión de adelantos</h2>
-    <a href="<?php echo $baseUrl; ?>/index.php?route=adelantos/list" class="btn btn-outline-secondary">Volver al listado</a>
+    <h2>Impresión de salarios</h2>
+    <a href="<?php echo $baseUrl; ?>/index.php?route=salarios/list" class="btn btn-outline-secondary">Volver al listado</a>
 </div>
 
 <?php if (!empty($mensaje)): ?>
@@ -32,9 +32,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title">Imprimir por empresa</h5>
-                <p class="text-muted">Genera la impresión de todos los adelantos de una empresa para un período.</p>
+                <p class="text-muted">Genera la impresión de todos los salarios de una empresa para un período.</p>
                 <form method="get" action="<?php echo $baseUrl; ?>/index.php" target="_blank" class="row g-3">
-                    <input type="hidden" name="route" value="adelantos/print-company">
+                    <input type="hidden" name="route" value="salarios/print-company">
                     <input type="hidden" name="formato" class="formato-input" value="<?php echo htmlspecialchars($formatoSeleccionado); ?>">
                     <div class="col-12">
                         <label class="form-label">Buscar empresa</label>
@@ -81,9 +81,9 @@
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title">Imprimir por funcionario</h5>
-                <p class="text-muted">Seleccione la empresa y luego el funcionario para imprimir su adelanto.</p>
+                <p class="text-muted">Seleccione la empresa y luego el funcionario para imprimir su salario.</p>
                 <form method="get" action="<?php echo $baseUrl; ?>/index.php" target="_blank" class="row g-3">
-                    <input type="hidden" name="route" value="adelantos/print-individual">
+                    <input type="hidden" name="route" value="salarios/print-individual">
                     <input type="hidden" name="formato" class="formato-input" value="<?php echo htmlspecialchars($formatoSeleccionado); ?>">
                     <div class="col-12">
                         <label class="form-label">Buscar empresa</label>

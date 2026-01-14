@@ -182,6 +182,7 @@ class AdelantosController extends Controller
     {
         $id = (int) ($_GET['id'] ?? 0);
         $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $formato = $this->normalizarFormato($_GET['formato'] ?? null);
         $adelanto = Adelanto::find($this->db, $id);
 
         if (!$adelanto) {
@@ -209,18 +210,29 @@ class AdelantosController extends Controller
         ];
         $fechaEmision = $adelanto->creadoEn ?? new DateTime();
         $mesNombre = $meses[$adelanto->mes] ?? (string) $adelanto->mes;
+        $urlDuplicado = $baseUrl . '/index.php?route=adelantos/print&id=' . $adelanto->id
+            . '&duplicado=1&formato=' . urlencode($formato);
 
-        require __DIR__ . '/../views/adelantos/print.php';
+        $vista = match ($formato) {
+            'formato_1' => 'print.php',
+            default => 'print.php'
+        };
+
+        require __DIR__ . '/../views/adelantos/' . $vista;
     }
 
     public function prints(): void
     {
         $mensaje = $this->consumeFlash();
+        $formatos = $this->formatosDisponibles();
+        $formatoSeleccionado = $this->normalizarFormato($_GET['formato'] ?? null);
 
         $this->view('adelantos/prints', [
             'empresas' => Empresa::all($this->db),
             'funcionarios' => Funcionario::all($this->db),
-            'mensaje' => $mensaje
+            'mensaje' => $mensaje,
+            'formatos' => $formatos,
+            'formatoSeleccionado' => $formatoSeleccionado
         ]);
     }
 
@@ -230,6 +242,7 @@ class AdelantosController extends Controller
         $anio = (int) ($_GET['anio'] ?? date('Y'));
         $mes = (int) ($_GET['mes'] ?? date('n'));
         $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $formato = $this->normalizarFormato($_GET['formato'] ?? null);
 
         if ($empresaId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > (int) date('Y')) {
             $_SESSION['flash'] = 'Seleccione una empresa y período válidos para imprimir.';
@@ -260,7 +273,12 @@ class AdelantosController extends Controller
             12 => 'Diciembre',
         ];
 
-        require __DIR__ . '/../views/adelantos/print_batch.php';
+        $vista = match ($formato) {
+            'formato_1' => 'print_batch.php',
+            default => 'print_batch.php'
+        };
+
+        require __DIR__ . '/../views/adelantos/' . $vista;
     }
 
     public function printIndividual(): void
@@ -270,6 +288,7 @@ class AdelantosController extends Controller
         $anio = (int) ($_GET['anio'] ?? date('Y'));
         $mes = (int) ($_GET['mes'] ?? date('n'));
         $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $formato = $this->normalizarFormato($_GET['formato'] ?? null);
 
         if ($empresaId <= 0 || $funcionarioId <= 0 || $mes < 1 || $mes > 12 || $anio < 2000 || $anio > (int) date('Y')) {
             $_SESSION['flash'] = 'Seleccione una empresa, funcionario y período válidos para imprimir.';
@@ -302,8 +321,16 @@ class AdelantosController extends Controller
         ];
         $fechaEmision = $adelanto->creadoEn ?? new DateTime();
         $mesNombre = $meses[$adelanto->mes] ?? (string) $adelanto->mes;
+        $urlDuplicado = $baseUrl . '/index.php?route=adelantos/print-individual&empresa_id=' . $empresaId
+            . '&funcionario_id=' . $funcionarioId . '&anio=' . $anio . '&mes=' . $mes
+            . '&duplicado=1&formato=' . urlencode($formato);
 
-        require __DIR__ . '/../views/adelantos/print.php';
+        $vista = match ($formato) {
+            'formato_1' => 'print.php',
+            default => 'print.php'
+        };
+
+        require __DIR__ . '/../views/adelantos/' . $vista;
     }  
 
     private function redirect(string $route): void
@@ -320,5 +347,22 @@ class AdelantosController extends Controller
         unset($_SESSION['flash']);
 
         return $mensaje;
+    }
+
+    private function formatosDisponibles(): array
+    {
+        return [
+            'formato_1' => 'Formato 1 - Recibo'
+        ];
+    }
+
+    private function normalizarFormato(?string $formato): string
+    {
+        $formatos = $this->formatosDisponibles();
+        if ($formato && isset($formatos[$formato])) {
+            return $formato;
+        }
+
+        return (string) array_key_first($formatos);
     }
 }

@@ -167,6 +167,29 @@ class Salario
         return (bool) $statement->fetchColumn();
     }
 
+    public static function findByFuncionarioPeriodo(Database $db, int $funcionarioId, int $anio, int $mes): ?self
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT s.*, f.nombre AS funcionario_nombre, f.nro_documento AS funcionario_documento, '
+            . 'e.razon_social AS empresa_nombre, e.ruc AS empresa_ruc, e.direccion AS empresa_direccion FROM salarios s '
+            . 'LEFT JOIN funcionarios f ON f.id = s.funcionario_id '
+            . 'LEFT JOIN empresas e ON e.id = s.empresa_id '
+            . 'WHERE s.funcionario_id = :funcionario_id AND s.anio = :anio AND s.mes = :mes LIMIT 1'
+        );
+        $statement->execute([
+            ':funcionario_id' => $funcionarioId,
+            ':anio' => $anio,
+            ':mes' => $mes
+        ]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            return null;
+        }
+
+        return self::fromRow($row);
+    }
+
     public static function calcularIps(
         ?Funcionario $funcionario,
         float $aporteObrero,

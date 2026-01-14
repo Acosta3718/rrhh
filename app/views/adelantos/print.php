@@ -7,6 +7,7 @@ use App\Models\Adelanto;
 /** @var string $mesNombre */
 /** @var array $meses */
 /** @var string $baseUrl */
+/** @var string $urlDuplicado */
 
 $empresaNombre = strtoupper($adelanto->empresaNombre ?? '');
 $empresaRuc = $adelanto->empresaRuc ?? '';
@@ -87,7 +88,7 @@ $conceptoMes = ($meses[$adelanto->mes] ?? $adelanto->mes) . ' del ' . $adelanto-
         <div class="print-actions d-flex gap-2 align-items-center no-print">
             <a href="<?php echo $baseUrl; ?>/index.php?route=adelantos/list" class="btn btn-outline-secondary">Volver</a>
             <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
-            <a class="btn btn-outline-primary" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/print&id=<?php echo $adelanto->id; ?>&duplicado=1">Imprimir con duplicado</a>
+            <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars($urlDuplicado); ?>">Imprimir con duplicado</a>
             <button class="btn btn-success" onclick="descargarPdf()">Descargar PDF</button>
             <span class="text-muted small ms-2">Use “Guardar como PDF” en el diálogo de impresión.</span>
         </div>

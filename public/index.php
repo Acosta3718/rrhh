@@ -113,6 +113,15 @@ switch ($route) {
     case 'salarios/list':
         (new SalariosController($db))->index();
         break;
+    case 'salarios/prints':
+        (new SalariosController($db))->prints();
+        break;
+    case 'salarios/print-company':
+        (new SalariosController($db))->printCompany();
+        break;
+    case 'salarios/print-individual':
+        (new SalariosController($db))->printIndividual();
+        break;
     case 'salarios/create':
         (new SalariosController($db))->create();
         break;
