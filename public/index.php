@@ -134,6 +134,15 @@ switch ($route) {
     case 'aguinaldos/list':
         (new AguinaldosController($db))->index();
         break;
+    case 'aguinaldos/create':
+        (new AguinaldosController($db))->create();
+        break;
+    case 'aguinaldos/edit':
+        (new AguinaldosController($db))->edit();
+        break;
+    case 'aguinaldos/delete':
+        (new AguinaldosController($db))->delete();
+        break;
     case 'tipos-movimientos/create':
         (new TiposMovimientosController($db))->create();
         break;
