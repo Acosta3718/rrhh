@@ -191,7 +191,16 @@ class Aguinaldo
     public static function totalCobradoAnual(Database $db, int $funcionarioId, int $anio): float
     {
         $statement = $db->pdo()->prepare(
-            'SELECT COALESCE(SUM(salario_neto), 0) FROM salarios WHERE funcionario_id = :funcionario_id AND anio = :anio'
+            'SELECT COALESCE(SUM(s.salario_base + COALESCE(creditos.total_creditos, 0)), 0) '
+            . 'FROM salarios s '
+            . 'LEFT JOIN ('
+            . 'SELECT sm.salario_id, SUM(sm.monto) AS total_creditos '
+            . 'FROM salario_movimientos sm '
+            . 'INNER JOIN tipos_movimientos tm ON tm.id = sm.tipo_movimiento_id '
+            . 'WHERE tm.tipo = "credito" '
+            . 'GROUP BY sm.salario_id'
+            . ') AS creditos ON creditos.salario_id = s.id '
+            . 'WHERE s.funcionario_id = :funcionario_id AND s.anio = :anio'
         );
         $statement->execute([
             ':funcionario_id' => $funcionarioId,
@@ -199,6 +208,36 @@ class Aguinaldo
         ]);
 
         return (float) $statement->fetchColumn();
+    }
+
+    public static function totalesPercibidosPorMes(Database $db, int $funcionarioId, int $anio): array
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT s.mes, s.salario_base, COALESCE(creditos.total_creditos, 0) AS total_creditos '
+            . 'FROM salarios s '
+            . 'LEFT JOIN ('
+            . 'SELECT sm.salario_id, SUM(sm.monto) AS total_creditos '
+            . 'FROM salario_movimientos sm '
+            . 'INNER JOIN tipos_movimientos tm ON tm.id = sm.tipo_movimiento_id '
+            . 'WHERE tm.tipo = "credito" '
+            . 'GROUP BY sm.salario_id'
+            . ') AS creditos ON creditos.salario_id = s.id '
+            . 'WHERE s.funcionario_id = :funcionario_id AND s.anio = :anio '
+            . 'ORDER BY s.mes ASC'
+        );
+        $statement->execute([
+            ':funcionario_id' => $funcionarioId,
+            ':anio' => $anio
+        ]);
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        $totales = [];
+
+        foreach ($rows as $row) {
+            $mes = (int) $row['mes'];
+            $totales[$mes] = (float) $row['salario_base'] + (float) $row['total_creditos'];
+        }
+
+        return $totales;
     }
 
     public static function calcularMontoDesdeTotal(float $totalCobrado): float

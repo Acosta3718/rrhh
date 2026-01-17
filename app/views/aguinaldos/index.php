@@ -42,6 +42,7 @@
             <th>Funcionario</th>
             <th>Empresa</th>
             <th>Año</th>
+            <th>Total anual</th>
             <th>Monto</th>
             <th>Fecha</th>
             <th class="text-end">Acciones</th>
@@ -53,6 +54,7 @@
                 <td><?php echo htmlspecialchars($aguinaldo->funcionarioNombre ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($aguinaldo->empresaNombre ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($aguinaldo->anio); ?></td>
+                <td><?php echo number_format($totalesAnuales[$aguinaldo->id ?? 0] ?? 0, 0, ',', '.'); ?></td>
                 <td><?php echo number_format($aguinaldo->monto, 0, ',', '.'); ?></td>
                 <td><?php echo htmlspecialchars($aguinaldo->creadoEn?->format('Y-m-d H:i') ?? ''); ?></td>
                 <td class="text-end">
@@ -65,7 +67,7 @@
             </tr>
         <?php endforeach; ?>
         <?php if (empty($aguinaldos)): ?>
-            <tr><td colspan="6" class="text-muted">No hay registros.</td></tr>
+            <tr><td colspan="7" class="text-muted">No hay registros.</td></tr>
         <?php endif; ?>
     </tbody>
 </table>

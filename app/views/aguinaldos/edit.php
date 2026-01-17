@@ -36,3 +36,42 @@
         <a href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/list" class="btn btn-link">Cancelar</a>
     </div>
 </form>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">Totales percibidos por mes</h5>
+        <?php if (!empty($totalesPorMes)): ?>
+            <?php $totalAnual = array_sum($totalesPorMes); ?>
+            <ul class="list-group list-group-flush">
+                <?php
+                $meses = [
+                    1 => 'Enero',
+                    2 => 'Febrero',
+                    3 => 'Marzo',
+                    4 => 'Abril',
+                    5 => 'Mayo',
+                    6 => 'Junio',
+                    7 => 'Julio',
+                    8 => 'Agosto',
+                    9 => 'Septiembre',
+                    10 => 'Octubre',
+                    11 => 'Noviembre',
+                    12 => 'Diciembre',
+                ];
+                ?>
+                <?php foreach ($totalesPorMes as $mes => $total): ?>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span><?php echo htmlspecialchars($meses[$mes] ?? (string) $mes); ?></span>
+                        <strong>Gs. <?php echo number_format($total, 0, ',', '.'); ?></strong>
+                    </li>
+                <?php endforeach; ?>
+                <li class="list-group-item d-flex justify-content-between align-items-center fw-semibold">
+                    <span>Total anual</span>
+                    <strong>Gs. <?php echo number_format($totalAnual, 0, ',', '.'); ?></strong>
+                </li>
+            </ul>
+        <?php else: ?>
+            <p class="text-muted mb-0">No hay salarios registrados para el año seleccionado.</p>
+        <?php endif; ?>
+    </div>
+</div>

@@ -21,9 +21,20 @@ class AguinaldosController extends Controller
         $empresaId = isset($_GET['empresa_id']) && $_GET['empresa_id'] !== '' ? (int) $_GET['empresa_id'] : null;
         $anio = isset($_GET['anio']) && $_GET['anio'] !== '' ? (int) $_GET['anio'] : null;
         $nombre = $_GET['nombre'] ?? null;
+        $aguinaldos = Aguinaldo::search($this->db, $empresaId, $anio, $nombre);
+        $totalesAnuales = [];
+
+        foreach ($aguinaldos as $aguinaldo) {
+            $totalesAnuales[$aguinaldo->id ?? 0] = Aguinaldo::totalCobradoAnual(
+                $this->db,
+                $aguinaldo->funcionarioId,
+                $aguinaldo->anio
+            );
+        }
 
         $this->view('aguinaldos/index', [
-            'aguinaldos' => Aguinaldo::search($this->db, $empresaId, $anio, $nombre),
+            'aguinaldos' => $aguinaldos,
+            'totalesAnuales' => $totalesAnuales,
             'empresas' => Empresa::all($this->db),
             'filtros' => [
                 'empresa_id' => $empresaId,
@@ -155,9 +166,16 @@ class AguinaldosController extends Controller
             }
         }
 
+        $totalesPorMes = Aguinaldo::totalesPercibidosPorMes(
+            $this->db,
+            $aguinaldo->funcionarioId,
+            $aguinaldo->anio
+        );
+
         $this->view('aguinaldos/edit', [
             'aguinaldo' => $aguinaldo,
             'funcionario' => $funcionario,
+            'totalesPorMes' => $totalesPorMes,
             'errores' => $errores,
             'mensaje' => $mensaje
         ]);
