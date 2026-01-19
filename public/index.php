@@ -9,6 +9,7 @@ use App\Controllers\ParametrosController;
 use App\Controllers\AdelantosController;
 use App\Controllers\SalariosController;
 use App\Controllers\AguinaldosController;
+use App\Controllers\LiquidacionesController;
 use App\Controllers\TiposMovimientosController;
 use App\Core\Database;
 
@@ -151,6 +152,15 @@ switch ($route) {
         break;
     case 'aguinaldos/print-individual':
         (new AguinaldosController($db))->printIndividual();
+        break;
+    case 'liquidaciones/list':
+        (new LiquidacionesController($db))->index();
+        break;
+    case 'liquidaciones/create':
+        (new LiquidacionesController($db))->create();
+        break;
+    case 'liquidaciones/edit':
+        (new LiquidacionesController($db))->edit();
         break;
     case 'tipos-movimientos/create':
         (new TiposMovimientosController($db))->create();
