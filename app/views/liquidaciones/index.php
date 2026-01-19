@@ -66,6 +66,10 @@
                 <td><?php echo htmlspecialchars($liquidacion->creadoEn?->format('Y-m-d H:i') ?? ''); ?></td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-secondary" href="<?php echo $baseUrl; ?>/index.php?route=liquidaciones/edit&id=<?php echo $liquidacion->id; ?>">Editar</a>
+                    <form method="post" action="<?php echo $baseUrl; ?>/index.php?route=liquidaciones/delete" class="d-inline" onsubmit="return confirm('¿Eliminar esta liquidación?');">
+                        <input type="hidden" name="id" value="<?php echo $liquidacion->id; ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                    </form>
                 </td>
             </tr>
         <?php endforeach; ?>

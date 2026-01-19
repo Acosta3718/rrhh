@@ -41,6 +41,7 @@ class LiquidacionesController extends Controller
         $errores = [];
         $mensaje = $this->consumeFlash();
         $detalle = null;
+        $liquidacionGuardada = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $funcionarioId = (int) ($_POST['funcionario_id'] ?? 0);
@@ -57,6 +58,10 @@ class LiquidacionesController extends Controller
             $fechaSalida = $fechaSalidaRaw ? new DateTime($fechaSalidaRaw) : null;
             if (!$fechaSalida) {
                 $errores['fecha_salida'] = 'Ingrese una fecha válida';
+            }
+
+            if ($funcionario && ($funcionario->fechaSalida || Liquidacion::existsByFuncionario($this->db, $funcionario->id ?? 0))) {
+                $errores['funcionario_id'] = 'El funcionario ya tiene una liquidación registrada.';
             }
 
             if (!$errores && $funcionario && $fechaSalida) {
@@ -83,9 +88,27 @@ class LiquidacionesController extends Controller
 
                 $errores = array_merge($errores, $liquidacion->validate());
 
-                if (empty($errores) && $liquidacion->save($this->db)) {
-                    $_SESSION['flash'] = 'Liquidación generada correctamente.';
-                    $this->redirect('liquidaciones/list');
+                if (empty($errores)) {
+                    $pdo = $this->db->pdo();
+                    $pdo->beginTransaction();
+
+                    try {
+                        if (!$liquidacion->save($this->db)) {
+                            throw new \RuntimeException('No se pudo guardar la liquidación.');
+                        }
+
+                        $funcionario->fechaSalida = $fechaSalida;
+                        if (!$funcionario->update($this->db)) {
+                            throw new \RuntimeException('No se pudo actualizar la fecha de salida del funcionario.');
+                        }
+
+                        $pdo->commit();
+                        $mensaje = 'Liquidación generada correctamente.';
+                        $liquidacionGuardada = $liquidacion;
+                    } catch (\Throwable $exception) {
+                        $pdo->rollBack();
+                        $errores['general'] = 'No se pudo generar la liquidación. Intente nuevamente.';
+                    }
                 }
             }
         }
@@ -95,6 +118,7 @@ class LiquidacionesController extends Controller
             'tiposSalida' => Liquidacion::TIPOS_SALIDA,
             'errores' => $errores,
             'detalle' => $detalle,
+            'liquidacionGuardada' => $liquidacionGuardada,
             'mensaje' => $mensaje
         ]);
     }
@@ -145,9 +169,29 @@ class LiquidacionesController extends Controller
 
                 $errores = array_merge($errores, $liquidacion->validate());
 
-                if (empty($errores) && $liquidacion->update($this->db)) {
-                    $_SESSION['flash'] = 'Liquidación actualizada correctamente.';
-                    $this->redirect('liquidaciones/list');
+                if (empty($errores)) {
+                    $pdo = $this->db->pdo();
+                    $pdo->beginTransaction();
+
+                    try {
+                        if (!$liquidacion->update($this->db)) {
+                            throw new \RuntimeException('No se pudo actualizar la liquidación.');
+                        }
+
+                        if ($funcionario) {
+                            $funcionario->fechaSalida = $fechaSalida;
+                            if (!$funcionario->update($this->db)) {
+                                throw new \RuntimeException('No se pudo actualizar la fecha de salida del funcionario.');
+                            }
+                        }
+
+                        $pdo->commit();
+                        $_SESSION['flash'] = 'Liquidación actualizada correctamente.';
+                        $this->redirect('liquidaciones/list');
+                    } catch (\Throwable $exception) {
+                        $pdo->rollBack();
+                        $errores['general'] = 'No se pudo actualizar la liquidación. Intente nuevamente.';
+                    }
                 }
             }
         }
@@ -160,6 +204,18 @@ class LiquidacionesController extends Controller
             'detalle' => $detalle,
             'mensaje' => $mensaje
         ]);
+    }
+
+    public function delete(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = (int) ($_POST['id'] ?? 0);
+            if ($id > 0 && Liquidacion::deleteById($this->db, $id)) {
+                $_SESSION['flash'] = 'Liquidación eliminada correctamente.';
+            }
+        }
+
+        $this->redirect('liquidaciones/list');
     }
 
     private function redirect(string $route): void

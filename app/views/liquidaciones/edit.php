@@ -6,6 +6,9 @@
 <?php if (!empty($mensaje)): ?>
     <div class="alert alert-success"><?php echo htmlspecialchars($mensaje); ?></div>
 <?php endif; ?>
+<?php if (!empty($errores['general'])): ?>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($errores['general']); ?></div>
+<?php endif; ?>
 
 <?php
 $detalleActual = $detalle ?? [

@@ -125,6 +125,12 @@ class Liquidacion
         ]);
     }
 
+    public static function deleteById(Database $db, int $id): bool
+    {
+        $statement = $db->pdo()->prepare('DELETE FROM liquidaciones WHERE id = :id');
+        return $statement->execute([':id' => $id]);
+    }
+
     public static function find(Database $db, int $id): ?self
     {
         $statement = $db->pdo()->prepare(
@@ -136,6 +142,22 @@ class Liquidacion
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 
         return $row ? self::fromRow($row) : null;
+    }
+
+    public static function existsByFuncionario(Database $db, int $funcionarioId, ?int $excludeId = null): bool
+    {
+        $sql = 'SELECT 1 FROM liquidaciones WHERE funcionario_id = :funcionario_id';
+        $params = [':funcionario_id' => $funcionarioId];
+
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> :id';
+            $params[':id'] = $excludeId;
+        }
+
+        $statement = $db->pdo()->prepare($sql . ' LIMIT 1');
+        $statement->execute($params);
+
+        return (bool) $statement->fetchColumn();
     }
 
     public static function search(

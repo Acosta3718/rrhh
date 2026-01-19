@@ -162,6 +162,9 @@ switch ($route) {
     case 'liquidaciones/edit':
         (new LiquidacionesController($db))->edit();
         break;
+    case 'liquidaciones/delete':
+        (new LiquidacionesController($db))->delete();
+        break;
     case 'tipos-movimientos/create':
         (new TiposMovimientosController($db))->create();
         break;

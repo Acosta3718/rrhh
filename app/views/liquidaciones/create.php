@@ -6,6 +6,9 @@
 <?php if (!empty($mensaje)): ?>
     <div class="alert alert-success"><?php echo htmlspecialchars($mensaje); ?></div>
 <?php endif; ?>
+<?php if (!empty($errores['general'])): ?>
+    <div class="alert alert-danger"><?php echo htmlspecialchars($errores['general']); ?></div>
+<?php endif; ?>
 
 <div class="row g-4">
     <div class="col-lg-5">
@@ -66,6 +69,11 @@
             <div class="card-body">
                 <h5 class="card-title text-center text-uppercase">Liquidación de haberes</h5>
                 <?php if ($detalle): ?>
+                    <?php if (!empty($liquidacionGuardada?->id)): ?>
+                        <div class="d-flex justify-content-end mb-2">
+                            <a class="btn btn-sm btn-outline-secondary" href="<?php echo $baseUrl; ?>/index.php?route=liquidaciones/edit&id=<?php echo $liquidacionGuardada->id; ?>">Editar liquidación</a>
+                        </div>
+                    <?php endif; ?>
                     <div class="row small mb-3">
                         <div class="col-md-6">
                             <div><strong>Fecha de salida:</strong> <?php echo htmlspecialchars($_POST['fecha_salida'] ?? ''); ?></div>
