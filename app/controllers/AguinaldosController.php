@@ -193,6 +193,90 @@ class AguinaldosController extends Controller
         $this->redirect('aguinaldos/list');
     }
 
+    public function prints(): void
+    {
+        $mensaje = $this->consumeFlash();
+        $formatos = $this->formatosDisponibles();
+        $formatoSeleccionado = $this->normalizarFormato($_GET['formato'] ?? null);
+
+        $this->view('aguinaldos/prints', [
+            'empresas' => Empresa::all($this->db),
+            'funcionarios' => Funcionario::all($this->db),
+            'mensaje' => $mensaje,
+            'formatos' => $formatos,
+            'formatoSeleccionado' => $formatoSeleccionado
+        ]);
+    }
+
+    public function printCompany(): void
+    {
+        $empresaId = (int) ($_GET['empresa_id'] ?? 0);
+        $anio = (int) ($_GET['anio'] ?? date('Y'));
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $formato = $this->normalizarFormato($_GET['formato'] ?? null);
+
+        if ($empresaId <= 0 || $anio < 2000 || $anio > (int) date('Y')) {
+            $_SESSION['flash'] = 'Seleccione una empresa y año válidos para imprimir.';
+            $this->redirect('aguinaldos/prints');
+        }
+
+        $aguinaldos = Aguinaldo::search($this->db, $empresaId, $anio);
+        if (empty($aguinaldos)) {
+            $_SESSION['flash'] = 'No se encontraron aguinaldos para la empresa y año seleccionados.';
+            $this->redirect('aguinaldos/prints');
+        }
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $copias = $duplicado ? 2 : 1;
+        $urlDuplicado = $baseUrl . '/index.php?route=aguinaldos/print-company&empresa_id=' . $empresaId
+            . '&anio=' . $anio . '&duplicado=1&formato=' . urlencode($formato);
+
+        $vista = match ($formato) {
+            'formato_1' => 'print_formato_1.php',
+            'formato_2' => 'print_formato_2.php',
+            default => 'print_formato_1.php'
+        };
+
+        require __DIR__ . '/../views/aguinaldos/' . $vista;
+    }
+
+    public function printIndividual(): void
+    {
+        $empresaId = (int) ($_GET['empresa_id'] ?? 0);
+        $funcionarioId = (int) ($_GET['funcionario_id'] ?? 0);
+        $anio = (int) ($_GET['anio'] ?? date('Y'));
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+        $formato = $this->normalizarFormato($_GET['formato'] ?? null);
+
+        if ($empresaId <= 0 || $funcionarioId <= 0 || $anio < 2000 || $anio > (int) date('Y')) {
+            $_SESSION['flash'] = 'Seleccione una empresa, funcionario y año válidos para imprimir.';
+            $this->redirect('aguinaldos/prints');
+        }
+
+        $aguinaldo = Aguinaldo::findByFuncionarioPeriodo($this->db, $funcionarioId, $anio);
+        if (!$aguinaldo || $aguinaldo->empresaId !== $empresaId) {
+            $_SESSION['flash'] = 'No se encontró un aguinaldo con los filtros indicados.';
+            $this->redirect('aguinaldos/prints');
+        }
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $copias = $duplicado ? 2 : 1;
+        $urlDuplicado = $baseUrl . '/index.php?route=aguinaldos/print-individual&empresa_id=' . $empresaId
+            . '&funcionario_id=' . $funcionarioId . '&anio=' . $anio
+            . '&duplicado=1&formato=' . urlencode($formato);
+        $aguinaldos = [$aguinaldo];
+
+        $vista = match ($formato) {
+            'formato_1' => 'print_formato_1.php',
+            'formato_2' => 'print_formato_2.php',
+            default => 'print_formato_1.php'
+        };
+
+        require __DIR__ . '/../views/aguinaldos/' . $vista;
+    }
+
     private function redirect(string $route): void
     {
         $config = $GLOBALS['app_config'] ?? [];
@@ -207,5 +291,23 @@ class AguinaldosController extends Controller
         unset($_SESSION['flash']);
 
         return $mensaje;
+    }
+
+    private function formatosDisponibles(): array
+    {
+        return [
+            'formato_1' => 'Formato 1 - Recibo detallado',
+            'formato_2' => 'Formato 2 - Comprobante simple'
+        ];
+    }
+
+    private function normalizarFormato(?string $formato): string
+    {
+        $formatos = $this->formatosDisponibles();
+        if ($formato && isset($formatos[$formato])) {
+            return $formato;
+        }
+
+        return (string) array_key_first($formatos);
     }
 }
