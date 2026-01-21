@@ -85,7 +85,9 @@ class Salario
         ?int $empresaId = null,
         ?int $anio = null,
         ?int $mes = null,
-        ?string $nombre = null
+        ?string $nombre = null,
+        ?int $limit = null,
+        ?int $offset = null
     ): array {
         $sql = 'SELECT s.*, f.nombre AS funcionario_nombre, f.nro_documento AS funcionario_documento, '
             . 'e.razon_social AS empresa_nombre, e.ruc AS empresa_ruc, e.direccion AS empresa_direccion FROM salarios s '
@@ -113,10 +115,55 @@ class Salario
         $sql .= ' ORDER BY s.id DESC';
 
         $statement = $db->pdo()->prepare($sql);
-        $statement->execute($params);
+        if ($limit !== null && $offset !== null) {
+            $sql .= ' LIMIT :limit OFFSET :offset';
+            $statement = $db->pdo()->prepare($sql);
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+        }
+
+        foreach ($params as $key => $value) {
+            $statement->bindValue($key, $value);
+        }
+
+        $statement->execute();
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(fn(array $row) => self::fromRow($row), $rows);
+    }
+
+    public static function countSearch(
+        Database $db,
+        ?int $empresaId = null,
+        ?int $anio = null,
+        ?int $mes = null,
+        ?string $nombre = null
+    ): int {
+        $sql = 'SELECT COUNT(*) FROM salarios s '
+            . 'LEFT JOIN funcionarios f ON f.id = s.funcionario_id WHERE 1=1';
+        $params = [];
+
+        if ($empresaId) {
+            $sql .= ' AND s.empresa_id = :empresa_id';
+            $params[':empresa_id'] = $empresaId;
+        }
+        if ($anio) {
+            $sql .= ' AND s.anio = :anio';
+            $params[':anio'] = $anio;
+        }
+        if ($mes) {
+            $sql .= ' AND s.mes = :mes';
+            $params[':mes'] = $mes;
+        }
+        if ($nombre) {
+            $sql .= ' AND f.nombre LIKE :nombre';
+            $params[':nombre'] = '%' . $nombre . '%';
+        }
+
+        $statement = $db->pdo()->prepare($sql);
+        $statement->execute($params);
+
+        return (int) $statement->fetchColumn();
     }
 
      public static function find(Database $db, int $id): ?self

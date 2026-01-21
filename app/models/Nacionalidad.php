@@ -58,6 +58,25 @@ class Nacionalidad
         return array_map(fn(array $row) => self::fromRow($row), $rows);
     }
 
+    public static function paginate(Database $db, int $limit, int $offset): array
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT id, nombre FROM nacionalidades ORDER BY nombre ASC LIMIT :limit OFFSET :offset'
+        );
+        $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn(array $row) => self::fromRow($row), $rows);
+    }
+
+    public static function countAll(Database $db): int
+    {
+        $statement = $db->pdo()->query('SELECT COUNT(*) FROM nacionalidades');
+        return (int) $statement->fetchColumn();
+    }
+
     public static function find(Database $db, int $id): ?self
     {
         $statement = $db->pdo()->prepare('SELECT id, nombre FROM nacionalidades WHERE id = :id');

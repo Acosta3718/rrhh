@@ -51,10 +51,18 @@ class EmpresasController extends Controller
     public function index(): void
     {
         $mensaje = $this->consumeFlash();
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 10;
+        $total = Empresa::countAll($this->db);
+        $pagination = $this->buildPagination($page, $perPage, $total, [
+            'route' => 'empresas/list'
+        ]);
+        $offset = ($pagination['page'] - 1) * $perPage;
 
         $this->view('empresas/index', [
-            'empresas' => Empresa::all($this->db),
-            'mensaje' => $mensaje
+            'empresas' => Empresa::paginate($this->db, $perPage, $offset),
+            'mensaje' => $mensaje,
+            'pagination' => $pagination
         ]);
     }
 

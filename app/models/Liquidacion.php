@@ -164,7 +164,9 @@ class Liquidacion
         Database $db,
         ?int $empresaId = null,
         ?string $nombre = null,
-        ?string $tipoSalida = null
+        ?string $tipoSalida = null,
+        ?int $limit = null,
+        ?int $offset = null
     ): array {
         $sql = 'SELECT l.*, f.nombre AS funcionario_nombre, e.razon_social AS empresa_nombre FROM liquidaciones l '
             . 'LEFT JOIN funcionarios f ON f.id = l.funcionario_id '
@@ -187,10 +189,61 @@ class Liquidacion
         $sql .= ' ORDER BY l.id DESC';
 
         $statement = $db->pdo()->prepare($sql);
-        $statement->execute($params);
+        if ($limit !== null && $offset !== null) {
+            $sql .= ' LIMIT :limit OFFSET :offset';
+            $statement = $db->pdo()->prepare($sql);
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+        }
+
+        foreach ($params as $key => $value) {
+            $statement->bindValue($key, $value);
+        }
+
+        $statement->execute();
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(fn(array $row) => self::fromRow($row), $rows);
+    }
+
+    public static function countSearch(Database $db, ?int $empresaId = null, ?string $nombre = null, ?string $tipoSalida = null): int
+    {
+        $sql = 'SELECT COUNT(*) FROM liquidaciones l '
+            . 'LEFT JOIN funcionarios f ON f.id = l.funcionario_id WHERE 1=1';
+        $params = [];
+
+        if ($empresaId) {
+            $sql .= ' AND l.empresa_id = :empresa_id';
+            $params[':empresa_id'] = $empresaId;
+        }
+        if ($nombre) {
+            $sql .= ' AND f.nombre LIKE :nombre';
+            $params[':nombre'] = '%' . $nombre . '%';
+        }
+        if ($tipoSalida) {
+            $sql .= ' AND l.tipo_salida = :tipo_salida';
+            $params[':tipo_salida'] = $tipoSalida;
+        }
+
+        $statement = $db->pdo()->prepare($sql);
+        $statement->execute($params);
+
+        return (int) $statement->fetchColumn();
+    }
+
+    public static function findLatestByFuncionario(Database $db, int $funcionarioId): ?self
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT l.*, f.nombre AS funcionario_nombre, e.razon_social AS empresa_nombre FROM liquidaciones l '
+            . 'LEFT JOIN funcionarios f ON f.id = l.funcionario_id '
+            . 'LEFT JOIN empresas e ON e.id = l.empresa_id '
+            . 'WHERE l.funcionario_id = :funcionario_id '
+            . 'ORDER BY l.fecha_salida DESC, l.id DESC LIMIT 1'
+        );
+        $statement->execute([':funcionario_id' => $funcionarioId]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        return $row ? self::fromRow($row) : null;
     }
 
     public static function calcularDetalle(Funcionario $funcionario, DateTime $fechaSalida, string $tipoSalida, int $diasTrabajados, float $descuentos): array

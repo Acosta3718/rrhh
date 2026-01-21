@@ -22,9 +22,20 @@ class AdelantosController extends Controller
         $anio = isset($_GET['anio']) && $_GET['anio'] !== '' ? (int) $_GET['anio'] : null;
         $mes = isset($_GET['mes']) && $_GET['mes'] !== '' ? (int) $_GET['mes'] : null;
         $nombre = $_GET['nombre'] ?? null;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 10;
+        $total = Adelanto::countSearch($this->db, $empresaId, $anio, $mes, $nombre);
+        $pagination = $this->buildPagination($page, $perPage, $total, [
+            'route' => 'adelantos/list',
+            'empresa_id' => $empresaId,
+            'anio' => $anio,
+            'mes' => $mes,
+            'nombre' => $nombre
+        ]);
+        $offset = ($pagination['page'] - 1) * $perPage;
 
         $this->view('adelantos/index', [
-            'adelantos' => Adelanto::search($this->db, $empresaId, $anio, $mes, $nombre),
+            'adelantos' => Adelanto::search($this->db, $empresaId, $anio, $mes, $nombre, $perPage, $offset),
             'empresas' => Empresa::all($this->db),
             'filtros' => [
                 'empresa_id' => $empresaId,
@@ -32,7 +43,8 @@ class AdelantosController extends Controller
                 'mes' => $mes,
                 'nombre' => $nombre
             ],
-            'mensaje' => $mensaje
+            'mensaje' => $mensaje,
+            'pagination' => $pagination
         ]);
     }
 

@@ -38,3 +38,4 @@
         <?php endif; ?>
     </tbody>
 </table>
+<?php require __DIR__ . '/../layouts/pagination.php'; ?>

@@ -21,7 +21,17 @@ class AguinaldosController extends Controller
         $empresaId = isset($_GET['empresa_id']) && $_GET['empresa_id'] !== '' ? (int) $_GET['empresa_id'] : null;
         $anio = isset($_GET['anio']) && $_GET['anio'] !== '' ? (int) $_GET['anio'] : null;
         $nombre = $_GET['nombre'] ?? null;
-        $aguinaldos = Aguinaldo::search($this->db, $empresaId, $anio, $nombre);
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 10;
+        $total = Aguinaldo::countSearch($this->db, $empresaId, $anio, $nombre);
+        $pagination = $this->buildPagination($page, $perPage, $total, [
+            'route' => 'aguinaldos/list',
+            'empresa_id' => $empresaId,
+            'anio' => $anio,
+            'nombre' => $nombre
+        ]);
+        $offset = ($pagination['page'] - 1) * $perPage;
+        $aguinaldos = Aguinaldo::search($this->db, $empresaId, $anio, $nombre, $perPage, $offset);
         $totalesAnuales = [];
 
         foreach ($aguinaldos as $aguinaldo) {
@@ -41,7 +51,8 @@ class AguinaldosController extends Controller
                 'anio' => $anio,
                 'nombre' => $nombre
             ],
-            'mensaje' => $mensaje
+            'mensaje' => $mensaje,
+            'pagination' => $pagination
         ]);
     }
 

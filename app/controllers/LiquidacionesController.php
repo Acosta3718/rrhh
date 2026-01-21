@@ -21,9 +21,19 @@ class LiquidacionesController extends Controller
         $empresaId = isset($_GET['empresa_id']) && $_GET['empresa_id'] !== '' ? (int) $_GET['empresa_id'] : null;
         $nombre = $_GET['nombre'] ?? null;
         $tipoSalida = $_GET['tipo_salida'] ?? null;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 10;
+        $total = Liquidacion::countSearch($this->db, $empresaId, $nombre, $tipoSalida);
+        $pagination = $this->buildPagination($page, $perPage, $total, [
+            'route' => 'liquidaciones/list',
+            'empresa_id' => $empresaId,
+            'nombre' => $nombre,
+            'tipo_salida' => $tipoSalida
+        ]);
+        $offset = ($pagination['page'] - 1) * $perPage;
 
         $this->view('liquidaciones/index', [
-            'liquidaciones' => Liquidacion::search($this->db, $empresaId, $nombre, $tipoSalida),
+            'liquidaciones' => Liquidacion::search($this->db, $empresaId, $nombre, $tipoSalida, $perPage, $offset),
             'empresas' => Empresa::all($this->db),
             'filtros' => [
                 'empresa_id' => $empresaId,
@@ -31,7 +41,8 @@ class LiquidacionesController extends Controller
                 'tipo_salida' => $tipoSalida
             ],
             'tiposSalida' => Liquidacion::TIPOS_SALIDA,
-            'mensaje' => $mensaje
+            'mensaje' => $mensaje,
+            'pagination' => $pagination
         ]);
     }
 
@@ -231,6 +242,7 @@ class LiquidacionesController extends Controller
     public function delete(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
                 $liquidacion = Liquidacion::find($this->db, $id);
                 if ($liquidacion) {
@@ -261,6 +273,42 @@ class LiquidacionesController extends Controller
         }
 
         $this->redirect('liquidaciones/list');
+    }
+
+    public function prints(): void
+    {
+        $mensaje = $this->consumeFlash();
+
+        $this->view('liquidaciones/prints', [
+            'funcionarios' => Funcionario::all($this->db),
+            'mensaje' => $mensaje
+        ]);
+    }
+
+    public function print(): void
+    {
+        $funcionarioId = (int) ($_GET['funcionario_id'] ?? 0);
+        $duplicado = isset($_GET['duplicado']) && $_GET['duplicado'] === '1';
+
+        if ($funcionarioId <= 0) {
+            $_SESSION['flash'] = 'Seleccione un funcionario válido para imprimir.';
+            $this->redirect('liquidaciones/prints');
+        }
+
+        $liquidacion = Liquidacion::findLatestByFuncionario($this->db, $funcionarioId);
+
+        if (!$liquidacion) {
+            $_SESSION['flash'] = 'No se encontró una liquidación para el funcionario seleccionado.';
+            $this->redirect('liquidaciones/prints');
+        }
+
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $copias = $duplicado ? 2 : 1;
+        $urlDuplicado = $baseUrl . '/index.php?route=liquidaciones/print&funcionario_id=' . $funcionarioId . '&duplicado=1';
+        $funcionario = Funcionario::find($this->db, $funcionarioId);
+
+        require __DIR__ . '/../views/liquidaciones/print.php';
     }
 
     private function redirect(string $route): void

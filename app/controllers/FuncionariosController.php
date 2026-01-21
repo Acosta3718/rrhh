@@ -57,15 +57,25 @@ class FuncionariosController extends Controller
         $mensaje = $this->consumeFlash();
         $empresaId = isset($_GET['empresa_id']) && $_GET['empresa_id'] !== '' ? (int) $_GET['empresa_id'] : null;
         $nombre = $_GET['nombre'] ?? null;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 10;
+        $total = Funcionario::countSearch($this->db, $empresaId, $nombre);
+        $pagination = $this->buildPagination($page, $perPage, $total, [
+            'route' => 'funcionarios/list',
+            'empresa_id' => $empresaId,
+            'nombre' => $nombre
+        ]);
+        $offset = ($pagination['page'] - 1) * $perPage;
 
         $this->view('funcionarios/index', [
-            'funcionarios' => Funcionario::search($this->db, $empresaId, $nombre),
+            'funcionarios' => Funcionario::search($this->db, $empresaId, $nombre, null, $perPage, $offset),
             'empresas' => Empresa::all($this->db),
             'filtros' => [
                 'empresa_id' => $empresaId,
                 'nombre' => $nombre
             ],
-            'mensaje' => $mensaje
+            'mensaje' => $mensaje,
+            'pagination' => $pagination
         ]);
     }
 

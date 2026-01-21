@@ -26,8 +26,19 @@ class SalariosController extends Controller
         $anio = isset($_GET['anio']) && $_GET['anio'] !== '' ? (int) $_GET['anio'] : null;
         $mes = isset($_GET['mes']) && $_GET['mes'] !== '' ? (int) $_GET['mes'] : null;
         $nombre = $_GET['nombre'] ?? null;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 10;
+        $total = Salario::countSearch($this->db, $empresaId, $anio, $mes, $nombre);
+        $pagination = $this->buildPagination($page, $perPage, $total, [
+            'route' => 'salarios/list',
+            'empresa_id' => $empresaId,
+            'anio' => $anio,
+            'mes' => $mes,
+            'nombre' => $nombre
+        ]);
+        $offset = ($pagination['page'] - 1) * $perPage;
 
-        $salarios = Salario::search($this->db, $empresaId, $anio, $mes, $nombre);
+        $salarios = Salario::search($this->db, $empresaId, $anio, $mes, $nombre, $perPage, $offset);
         $salarioIds = array_values(array_filter(array_map(static fn($salario) => $salario->id, $salarios)));
 
         $this->view('salarios/index', [
@@ -40,7 +51,8 @@ class SalariosController extends Controller
                 'mes' => $mes,
                 'nombre' => $nombre
             ],
-            'mensaje' => $mensaje
+            'mensaje' => $mensaje,
+            'pagination' => $pagination
         ]);
     }
 

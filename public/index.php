@@ -156,6 +156,12 @@ switch ($route) {
     case 'liquidaciones/list':
         (new LiquidacionesController($db))->index();
         break;
+    case 'liquidaciones/prints':
+        (new LiquidacionesController($db))->prints();
+        break;
+    case 'liquidaciones/print':
+        (new LiquidacionesController($db))->print();
+        break;
     case 'liquidaciones/create':
         (new LiquidacionesController($db))->create();
         break;

@@ -18,4 +18,21 @@ class Controller
         require __DIR__ . '/../views/' . $view . '.php';
         require __DIR__ . '/../views/layouts/footer.php';
     }
+
+    protected function buildPagination(int $page, int $perPage, int $total, array $params = []): array
+    {
+        $totalPages = (int) max(1, (int) ceil($total / $perPage));
+        $page = max(1, min($page, $totalPages));
+
+        return [
+            'page' => $page,
+            'perPage' => $perPage,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'params' => array_filter(
+                $params,
+                fn($value) => $value !== null && $value !== ''
+            )
+        ];
+    }
 }

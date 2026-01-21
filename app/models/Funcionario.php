@@ -191,8 +191,14 @@ class Funcionario
         return self::search($db, $empresaId, null, 'activo');
     }
 
-    public static function search(Database $db, ?int $empresaId = null, ?string $nombre = null, ?string $estado = null): array
-    {
+    public static function search(
+        Database $db,
+        ?int $empresaId = null,
+        ?string $nombre = null,
+        ?string $estado = null,
+        ?int $limit = null,
+        ?int $offset = null
+    ): array {
         $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre FROM funcionarios f '
             . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
             . 'LEFT JOIN empresas e ON f.empresa_id = e.id WHERE 1=1';
@@ -214,10 +220,45 @@ class Funcionario
         $sql .= ' ORDER BY f.id DESC';
 
         $statement = $db->pdo()->prepare($sql);
-        $statement->execute($params);
+        if ($limit !== null && $offset !== null) {
+            $sql .= ' LIMIT :limit OFFSET :offset';
+            $statement = $db->pdo()->prepare($sql);
+            $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
+            $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+        }
+
+        foreach ($params as $key => $value) {
+            $statement->bindValue($key, $value);
+        }
+
+        $statement->execute();
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(fn(array $row) => self::fromRow($row), $rows);
+    }
+
+    public static function countSearch(Database $db, ?int $empresaId = null, ?string $nombre = null, ?string $estado = null): int
+    {
+        $sql = 'SELECT COUNT(*) FROM funcionarios f WHERE 1=1';
+        $params = [];
+
+        if ($empresaId) {
+            $sql .= ' AND f.empresa_id = :empresa_id';
+            $params[':empresa_id'] = $empresaId;
+        }
+        if ($nombre) {
+            $sql .= ' AND f.nombre LIKE :nombre';
+            $params[':nombre'] = '%' . $nombre . '%';
+        }
+        if ($estado) {
+            $sql .= ' AND f.estado = :estado';
+            $params[':estado'] = $estado;
+        }
+
+        $statement = $db->pdo()->prepare($sql);
+        $statement->execute($params);
+
+        return (int) $statement->fetchColumn();
     }
 
     public static function existsByDocumento(Database $db, string $documento, ?int $excludeId = null): bool

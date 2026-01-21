@@ -50,10 +50,18 @@ class TiposMovimientosController extends Controller
     public function index(): void
     {
         $mensaje = $this->consumeFlash();
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $perPage = 10;
+        $total = TipoMovimiento::countAll($this->db);
+        $pagination = $this->buildPagination($page, $perPage, $total, [
+            'route' => 'tipos-movimientos/list'
+        ]);
+        $offset = ($pagination['page'] - 1) * $perPage;
 
         $this->view('tipos_movimientos/index', [
-            'tipos' => TipoMovimiento::all($this->db),
-            'mensaje' => $mensaje
+            'tipos' => TipoMovimiento::paginate($this->db, $perPage, $offset),
+            'mensaje' => $mensaje,
+            'pagination' => $pagination
         ]);
     }
 

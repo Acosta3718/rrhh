@@ -57,6 +57,7 @@
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=adelantos/prints">Adelantos</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=salarios/prints">Salarios</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=aguinaldos/prints">Aguinaldos</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=liquidaciones/prints">Liquidaciones</a></li>
                     </ul>
                 </li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=parametros">Parámetros</a></li>

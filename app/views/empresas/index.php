@@ -40,4 +40,5 @@
     <?php endforeach; ?>
     </tbody>
 </table>
+<?php require __DIR__ . '/../layouts/pagination.php'; ?>
 <?php endif; ?>
