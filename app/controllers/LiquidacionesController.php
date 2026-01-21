@@ -151,21 +151,43 @@ class LiquidacionesController extends Controller
 
             if (!$errores && $funcionario && $fechaSalida) {
                 $detalle = Liquidacion::calcularDetalle($funcionario, $fechaSalida, $tipoSalida, $diasTrabajados, $descuentos);
+                $salarioDiario = (float) ($_POST['salario_diario'] ?? $detalle['salario_diario']);
+                $salarioMes = (float) ($_POST['salario_mes'] ?? $detalle['salario_mes']);
+                $aniosServicio = (int) ($_POST['anios_servicio'] ?? $detalle['anios_servicio']);
+                $preavisoDias = (int) ($_POST['preaviso_dias'] ?? $detalle['preaviso_dias']);
+                $preavisoMonto = (float) ($_POST['preaviso_monto'] ?? $detalle['preaviso_monto']);
+                $vacacionesDias = (int) ($_POST['vacaciones_dias'] ?? $detalle['vacaciones_dias']);
+                $vacacionesMonto = (float) ($_POST['vacaciones_monto'] ?? $detalle['vacaciones_monto']);
+                $aguinaldo = (float) ($_POST['aguinaldo'] ?? $detalle['aguinaldo']);
+                $indemnizacion = (float) ($_POST['indemnizacion'] ?? $detalle['indemnizacion']);
+                $total = (float) ($_POST['total'] ?? $detalle['total']);
+                $detalle = [
+                    'salario_diario' => $salarioDiario,
+                    'salario_mes' => $salarioMes,
+                    'anios_servicio' => $aniosServicio,
+                    'preaviso_dias' => $preavisoDias,
+                    'preaviso_monto' => $preavisoMonto,
+                    'vacaciones_dias' => $vacacionesDias,
+                    'vacaciones_monto' => $vacacionesMonto,
+                    'aguinaldo' => $aguinaldo,
+                    'indemnizacion' => $indemnizacion,
+                    'total' => $total
+                ];
 
                 $liquidacion->fechaSalida = $fechaSalida;
                 $liquidacion->tipoSalida = $tipoSalida;
                 $liquidacion->diasTrabajados = $diasTrabajados;
                 $liquidacion->descuentos = $descuentos;
-                $liquidacion->salarioDiario = $detalle['salario_diario'];
-                $liquidacion->salarioMes = $detalle['salario_mes'];
-                $liquidacion->aniosServicio = $detalle['anios_servicio'];
-                $liquidacion->preavisoDias = $detalle['preaviso_dias'];
-                $liquidacion->preavisoMonto = $detalle['preaviso_monto'];
-                $liquidacion->vacacionesDias = $detalle['vacaciones_dias'];
-                $liquidacion->vacacionesMonto = $detalle['vacaciones_monto'];
-                $liquidacion->indemnizacion = $detalle['indemnizacion'];
-                $liquidacion->aguinaldo = $detalle['aguinaldo'];
-                $liquidacion->total = $detalle['total'];
+                $liquidacion->salarioDiario = $salarioDiario;
+                $liquidacion->salarioMes = $salarioMes;
+                $liquidacion->aniosServicio = $aniosServicio;
+                $liquidacion->preavisoDias = $preavisoDias;
+                $liquidacion->preavisoMonto = $preavisoMonto;
+                $liquidacion->vacacionesDias = $vacacionesDias;
+                $liquidacion->vacacionesMonto = $vacacionesMonto;
+                $liquidacion->indemnizacion = $indemnizacion;
+                $liquidacion->aguinaldo = $aguinaldo;
+                $liquidacion->total = $total;
 
                 $errores = array_merge($errores, $liquidacion->validate());
 
@@ -209,9 +231,32 @@ class LiquidacionesController extends Controller
     public function delete(): void
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $id = (int) ($_POST['id'] ?? 0);
-            if ($id > 0 && Liquidacion::deleteById($this->db, $id)) {
-                $_SESSION['flash'] = 'Liquidación eliminada correctamente.';
+            if ($id > 0) {
+                $liquidacion = Liquidacion::find($this->db, $id);
+                if ($liquidacion) {
+                    $pdo = $this->db->pdo();
+                    $pdo->beginTransaction();
+
+                    try {
+                        if (!Liquidacion::deleteById($this->db, $id)) {
+                            throw new \RuntimeException('No se pudo eliminar la liquidación.');
+                        }
+
+                        $funcionario = Funcionario::find($this->db, $liquidacion->funcionarioId);
+                        if ($funcionario) {
+                            $funcionario->fechaSalida = null;
+                            if (!$funcionario->update($this->db)) {
+                                throw new \RuntimeException('No se pudo actualizar la fecha de salida del funcionario.');
+                            }
+                        }
+
+                        $pdo->commit();
+                        $_SESSION['flash'] = 'Liquidación eliminada correctamente.';
+                    } catch (\Throwable $exception) {
+                        $pdo->rollBack();
+                        $_SESSION['flash'] = 'No se pudo eliminar la liquidación. Intente nuevamente.';
+                    }
+                }
             }
         }
 

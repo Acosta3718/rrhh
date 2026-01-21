@@ -63,6 +63,50 @@ $detalleActual = $detalle ?? [
                         <?php if (!empty($errores['descuentos'])): ?><div class="text-danger small"><?php echo $errores['descuentos']; ?></div><?php endif; ?>
                     </div>
                     <div class="col-12">
+                        <h6 class="mb-0">Campos calculados</h6>
+                        <p class="text-muted small">Puede ajustar estos valores antes de guardar.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Salario diario</label>
+                        <input type="number" name="salario_diario" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['salario_diario'] ?? 0)); ?>" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Salario del mes</label>
+                        <input type="number" name="salario_mes" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['salario_mes'] ?? 0)); ?>" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Años de servicio</label>
+                        <input type="number" name="anios_servicio" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['anios_servicio'] ?? 0)); ?>" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Días de preaviso</label>
+                        <input type="number" name="preaviso_dias" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['preaviso_dias'] ?? 0)); ?>" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Monto de preaviso</label>
+                        <input type="number" name="preaviso_monto" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['preaviso_monto'] ?? 0)); ?>" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Días de vacaciones</label>
+                        <input type="number" name="vacaciones_dias" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['vacaciones_dias'] ?? 0)); ?>" min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Monto de vacaciones</label>
+                        <input type="number" name="vacaciones_monto" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['vacaciones_monto'] ?? 0)); ?>" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Aguinaldo</label>
+                        <input type="number" name="aguinaldo" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['aguinaldo'] ?? 0)); ?>" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Indemnización</label>
+                        <input type="number" name="indemnizacion" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['indemnizacion'] ?? 0)); ?>" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Total</label>
+                        <input type="number" name="total" class="form-control" value="<?php echo htmlspecialchars((string) ($detalleActual['total'] ?? 0)); ?>" min="0" step="0.01">
+                    </div>
+                    <div class="col-12">
                         <button type="submit" class="btn btn-primary">Actualizar liquidación</button>
                     </div>
                 </form>
