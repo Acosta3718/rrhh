@@ -7,6 +7,7 @@ use App\Core\Database;
 use App\Models\Adelanto;
 use App\Models\Empresa;
 use App\Models\Funcionario;
+use App\Models\MarcacionReloj;
 use App\Models\Parametro;
 use App\Models\Salario;
 use App\Models\SalarioMovimiento;
@@ -118,13 +119,20 @@ class SalariosController extends Controller
 
                 $adelanto = $funcionario?->id ? Adelanto::findByFuncionarioPeriodo($this->db, $funcionario->id, $anio, $mes) : null;
                 $montoAdelanto = $adelanto?->monto ?? 0.0;
+                $movimientosReloj = $funcionario ? MarcacionReloj::calcularMovimientosParaPeriodo($this->db, $funcionario, $anio, $mes) : [
+                    'movimientos' => [],
+                    'total_creditos' => 0.0,
+                    'total_debitos' => 0.0
+                ];
+                $totalCreditos = ($funcionario?->salario ?? 0) + ($movimientosReloj['total_creditos'] ?? 0.0);
+                $totalDebitosReloj = $movimientosReloj['total_debitos'] ?? 0.0;
                 $ips = Salario::calcularIps(
                     $funcionario,
                     $aporteObrero,
                     $salarioMinimo,
-                    $funcionario?->salario ?? 0.0
+                    $totalCreditos
                 );
-                $salarioNeto = ($funcionario?->salario ?? 0) - $montoAdelanto - $ips;
+                $salarioNeto = $totalCreditos - ($montoAdelanto + $ips + $totalDebitosReloj);
 
                 $salario = new Salario(
                     funcionarioId: $funcionarioId,
@@ -146,6 +154,9 @@ class SalariosController extends Controller
                 if (empty($erroresIndividual)) {
                     $salario->creadoEn = new DateTime();
                     $salario->save($this->db);
+                    if (!empty($movimientosReloj['movimientos'])) {
+                        SalarioMovimiento::replaceForSalario($this->db, $salario->id ?? 0, $movimientosReloj['movimientos']);
+                    }
                     $_SESSION['flash'] = 'Salario generado correctamente.';
                     $this->redirect('salarios/list');
                 }

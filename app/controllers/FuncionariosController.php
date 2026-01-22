@@ -6,7 +6,8 @@ use App\Core\Controller;
 use App\Core\Database;
 use App\Models\Empresa;
 use App\Models\Funcionario;
-use App\Models\Nacionalidad;    
+use App\Models\Nacionalidad;
+use App\Models\Turno; 
 use DateTime;
 use PDOException;
 
@@ -48,7 +49,8 @@ class FuncionariosController extends Controller
             'mensaje' => $mensaje,
             'modoEdicion' => $modoEdicion,
             'nacionalidades' => Nacionalidad::all($this->db),
-            'empresas' => Empresa::all($this->db)
+            'empresas' => Empresa::all($this->db),
+            'turnos' => Turno::all($this->db)
         ]);
     }
 
@@ -118,7 +120,8 @@ class FuncionariosController extends Controller
             'mensaje' => $mensaje,
             'modoEdicion' => $modoEdicion,
             'nacionalidades' => Nacionalidad::all($this->db),
-            'empresas' => Empresa::all($this->db)
+            'empresas' => Empresa::all($this->db),
+            'turnos' => Turno::all($this->db)
         ]);
     }
 
@@ -177,6 +180,8 @@ class FuncionariosController extends Controller
             calculaIpsTotal: $calculaIpsTotal,
             calculaIpsMinimo: $calculaIpsMinimo,
             fechaSalida: $fechaSalida,
+            nroIdReloj: !empty($_POST['nro_id_reloj']) ? trim((string) $_POST['nro_id_reloj']) : null,
+            turnoId: !empty($_POST['turno_id']) ? (int) $_POST['turno_id'] : null,
             id: $id
         );
     }

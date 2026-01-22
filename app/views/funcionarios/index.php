@@ -40,6 +40,8 @@
             <th>Fecha ingreso</th>
             <th>Nacionalidad</th>
             <th>Estado civil</th>
+            <th>ID reloj</th>
+            <th>Turno</th>
             <th>Empresa</th>
             <th>Estado</th>
             <th>Tiene IPS</th>
@@ -56,6 +58,8 @@
                 <td><?php echo htmlspecialchars($funcionario->fechaIngreso->format('Y-m-d')); ?></td>
                 <td><?php echo htmlspecialchars($funcionario->nacionalidadId ? ($funcionario->nacionalidadNombre ?? '') : ''); ?></td>
                 <td class="text-capitalize"><?php echo htmlspecialchars($funcionario->estadoCivil); ?></td>
+                <td><?php echo htmlspecialchars($funcionario->nroIdReloj ?? ''); ?></td>
+                <td><?php echo htmlspecialchars($funcionario->turnoNombre ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($funcionario->empresaNombre ?? ''); ?></td>
                 <td class="text-capitalize"><?php echo htmlspecialchars($funcionario->estado); ?></td>
                 <td><?php echo $funcionario->tieneIps ? 'Sí' : 'No'; ?></td>
@@ -69,7 +73,7 @@
             </tr>
         <?php endforeach; ?>
         <?php if (empty($funcionarios)): ?>
-            <tr><td colspan="9" class="text-muted">No hay registros.</td></tr>
+            <tr><td colspan="13" class="text-muted">No hay registros.</td></tr>
         <?php endif; ?>
     </tbody>
 </table>

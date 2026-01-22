@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Core\Database;
+use App\Models\MarcacionReloj;
+use App\Models\SalarioMovimiento;
 use DateTime;
 use PDO;
 
@@ -278,8 +280,11 @@ class Salario
 
             $adelanto = Adelanto::findByFuncionarioPeriodo($db, $funcionario->id ?? 0, $anio, $mes);
             $montoAdelanto = $adelanto?->monto ?? 0.0;
-            $ips = self::calcularIps($funcionario, $aporteObrero, $salarioMinimo, $funcionario->salario);
-            $salarioNeto = $funcionario->salario - $montoAdelanto - $ips;
+            $movimientosReloj = MarcacionReloj::calcularMovimientosParaPeriodo($db, $funcionario, $anio, $mes);
+            $totalCreditos = $funcionario->salario + ($movimientosReloj['total_creditos'] ?? 0.0);
+            $totalDebitosReloj = $movimientosReloj['total_debitos'] ?? 0.0;
+            $ips = self::calcularIps($funcionario, $aporteObrero, $salarioMinimo, $totalCreditos);
+            $salarioNeto = $totalCreditos - ($montoAdelanto + $ips + $totalDebitosReloj);
 
             $salario = new self(
                 funcionarioId: $funcionario->id ?? 0,
@@ -293,6 +298,9 @@ class Salario
             );
 
             if ($salario->save($db)) {
+                if (!empty($movimientosReloj['movimientos'])) {
+                    SalarioMovimiento::replaceForSalario($db, $salario->id ?? 0, $movimientosReloj['movimientos']);
+                }
                 $creados++;
             }
         }

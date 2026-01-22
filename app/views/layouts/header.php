@@ -47,6 +47,8 @@
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=liquidaciones/list">Liquidación</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=tipos-movimientos/list">Tipos créditos/débitos</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=turnos/list">Turnos</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=marcaciones/importar">Importar horas</a></li>
                     </ul>
                 </li>
                 <li class="nav-item dropdown">

@@ -27,6 +27,9 @@ class Funcionario
         public bool $calculaIpsTotal = false,
         public bool $calculaIpsMinimo = false,
         public ?DateTime $fechaSalida = null,
+        public ?string $nroIdReloj = null,
+        public ?int $turnoId = null,
+        public ?string $turnoNombre = null,
         public ?string $empresaNombre = null,
         public ?int $id = null
     ) {
@@ -95,8 +98,8 @@ class Funcionario
     public function save(Database $db): bool
     {
         $statement = $db->pdo()->prepare(
-            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, estado, adelanto, tiene_ips, calcula_ips_total, calcula_ips_minimo, fecha_salida) '
-            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :estado, :adelanto, :tiene_ips, :calcula_ips_total, :calcula_ips_minimo, :fecha_salida)'
+            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, estado, adelanto, tiene_ips, calcula_ips_total, calcula_ips_minimo, fecha_salida, nro_id_reloj, turno_id) '
+            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :estado, :adelanto, :tiene_ips, :calcula_ips_total, :calcula_ips_minimo, :fecha_salida, :nro_id_reloj, :turno_id)'
         );
 
         $resultado = $statement->execute([
@@ -116,7 +119,9 @@ class Funcionario
             ':tiene_ips' => $this->tieneIps ? 1 : 0,
             ':calcula_ips_total' => $this->calculaIpsTotal ? 1 : 0,
             ':calcula_ips_minimo' => $this->calculaIpsMinimo ? 1 : 0,
-            ':fecha_salida' => $this->fechaSalida?->format('Y-m-d')
+            ':fecha_salida' => $this->fechaSalida?->format('Y-m-d'),
+            ':nro_id_reloj' => $this->nroIdReloj,
+            ':turno_id' => $this->turnoId
         ]);
 
         if ($resultado) {
@@ -133,7 +138,7 @@ class Funcionario
         }
 
         $statement = $db->pdo()->prepare(
-            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, estado = :estado, adelanto = :adelanto, tiene_ips = :tiene_ips, calcula_ips_total = :calcula_ips_total, calcula_ips_minimo = :calcula_ips_minimo, fecha_salida = :fecha_salida WHERE id = :id'
+            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, estado = :estado, adelanto = :adelanto, tiene_ips = :tiene_ips, calcula_ips_total = :calcula_ips_total, calcula_ips_minimo = :calcula_ips_minimo, fecha_salida = :fecha_salida, nro_id_reloj = :nro_id_reloj, turno_id = :turno_id WHERE id = :id'
         );
 
         return $statement->execute([
@@ -154,6 +159,8 @@ class Funcionario
             ':calcula_ips_total' => $this->calculaIpsTotal ? 1 : 0,
             ':calcula_ips_minimo' => $this->calculaIpsMinimo ? 1 : 0,
             ':fecha_salida' => $this->fechaSalida?->format('Y-m-d'),
+            ':nro_id_reloj' => $this->nroIdReloj,
+            ':turno_id' => $this->turnoId,
             ':id' => $this->id
         ]);
     }
@@ -166,9 +173,10 @@ class Funcionario
     public static function find(Database $db, int $id): ?self
     {
         $statement = $db->pdo()->prepare(
-            'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre FROM funcionarios f '
+            'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, t.nombre AS turno_nombre FROM funcionarios f '
             . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
-            . 'LEFT JOIN empresas e ON f.empresa_id = e.id WHERE f.id = :id'
+            . 'LEFT JOIN empresas e ON f.empresa_id = e.id '
+            . 'LEFT JOIN turnos t ON t.id = f.turno_id WHERE f.id = :id'
         );
         $statement->execute([':id' => $id]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
@@ -199,9 +207,10 @@ class Funcionario
         ?int $limit = null,
         ?int $offset = null
     ): array {
-        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre FROM funcionarios f '
+        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, t.nombre AS turno_nombre FROM funcionarios f '
             . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
-            . 'LEFT JOIN empresas e ON f.empresa_id = e.id WHERE 1=1';
+            . 'LEFT JOIN empresas e ON f.empresa_id = e.id '
+            . 'LEFT JOIN turnos t ON t.id = f.turno_id WHERE 1=1';
 
         $params = [];
         if ($empresaId) {
@@ -298,6 +307,9 @@ class Funcionario
             calculaIpsTotal: isset($row['calcula_ips_total']) ? (bool) $row['calcula_ips_total'] : false,
             calculaIpsMinimo: isset($row['calcula_ips_minimo']) ? (bool) $row['calcula_ips_minimo'] : false,
             fechaSalida: isset($row['fecha_salida']) && $row['fecha_salida'] ? new DateTime($row['fecha_salida']) : null,
+            nroIdReloj: $row['nro_id_reloj'] ?? null,
+            turnoId: isset($row['turno_id']) ? (int) $row['turno_id'] : null,
+            turnoNombre: $row['turno_nombre'] ?? null,
             empresaNombre: $row['empresa_nombre'] ?? null,
             id: isset($row['id']) ? (int) $row['id'] : null
         );

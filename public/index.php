@@ -10,7 +10,9 @@ use App\Controllers\AdelantosController;
 use App\Controllers\SalariosController;
 use App\Controllers\AguinaldosController;
 use App\Controllers\LiquidacionesController;
+use App\Controllers\MarcacionesController;
 use App\Controllers\TiposMovimientosController;
+use App\Controllers\TurnosController;
 use App\Core\Database;
 
 session_start();
@@ -182,6 +184,21 @@ switch ($route) {
         break;
     case 'tipos-movimientos/delete':
         (new TiposMovimientosController($db))->delete();
+        break;
+    case 'turnos/create':
+        (new TurnosController($db))->create();
+        break;
+    case 'turnos/list':
+        (new TurnosController($db))->index();
+        break;
+    case 'turnos/edit':
+        (new TurnosController($db))->edit();
+        break;
+    case 'turnos/delete':
+        (new TurnosController($db))->delete();
+        break;
+    case 'marcaciones/importar':
+        (new MarcacionesController($db))->importar();
         break;
     default:
         (new InicioController($db))->index();

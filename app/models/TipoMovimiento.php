@@ -136,6 +136,21 @@ class TipoMovimiento
         return (bool) $statement->fetchColumn();
     }
 
+    public static function findByDescripcion(Database $db, string $descripcion): ?self
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT id, descripcion, estado, tipo FROM tipos_movimientos WHERE descripcion = :descripcion LIMIT 1'
+        );
+        $statement->execute([':descripcion' => $descripcion]);
+        $row = $statement->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) {
+            return null;
+        }
+
+        return self::fromRow($row);
+    }
+
     private static function fromRow(array $row): self
     {
         return new self(

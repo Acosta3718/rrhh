@@ -83,6 +83,21 @@ if (!$empresaSeleccionada && !empty($funcionario?->empresaId)) {
         <?php if (!empty($errores['celular'])): ?><div class="text-danger small"><?php echo $errores['celular']; ?></div><?php endif; ?>
     </div>
     <div class="col-md-4">
+        <label class="form-label">Nro. ID reloj</label>
+        <input type="text" name="nro_id_reloj" class="form-control" value="<?php echo htmlspecialchars($funcionario->nroIdReloj ?? ''); ?>">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Turno</label>
+        <select name="turno_id" class="form-select">
+            <option value="">Seleccione...</option>
+            <?php foreach ($turnos as $turno): ?>
+                <option value="<?php echo $turno->id; ?>" <?php echo ($funcionario?->turnoId === $turno->id) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($turno->nombre); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <div class="col-md-4">
         <label class="form-label">Salario *</label>
         <input type="number" name="salario" class="form-control" min="0" step="0.01" value="<?php echo htmlspecialchars($funcionario->salario ?? ''); ?>" required>
         <?php if (!empty($errores['salario'])): ?><div class="text-danger small"><?php echo $errores['salario']; ?></div><?php endif; ?>
