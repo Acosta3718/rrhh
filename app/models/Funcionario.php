@@ -246,6 +246,22 @@ class Funcionario
         return array_map(fn(array $row) => self::fromRow($row), $rows);
     }
 
+    public static function conIdReloj(Database $db): array
+    {
+        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, t.nombre AS turno_nombre FROM funcionarios f '
+            . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
+            . 'LEFT JOIN empresas e ON f.empresa_id = e.id '
+            . 'LEFT JOIN turnos t ON t.id = f.turno_id '
+            . 'WHERE f.nro_id_reloj IS NOT NULL AND f.nro_id_reloj <> "" '
+            . 'ORDER BY f.nombre ASC';
+
+        $statement = $db->pdo()->prepare($sql);
+        $statement->execute();
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(fn(array $row) => self::fromRow($row), $rows);
+    }
+
     public static function countSearch(Database $db, ?int $empresaId = null, ?string $nombre = null, ?string $estado = null): int
     {
         $sql = 'SELECT COUNT(*) FROM funcionarios f WHERE 1=1';

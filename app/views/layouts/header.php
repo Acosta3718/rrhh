@@ -48,7 +48,9 @@
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=tipos-movimientos/list">Tipos créditos/débitos</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=turnos/list">Turnos</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=feriados/list">Feriados</a></li>
                         <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=marcaciones/importar">Importar horas</a></li>
+                        <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=marcaciones/horas">Horas importadas por funcionario</a></li>
                     </ul>
                 </li>
                 <li class="nav-item dropdown">

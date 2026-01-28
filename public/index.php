@@ -6,6 +6,7 @@ use App\Controllers\InicioController;
 use App\Controllers\NacionalidadesController;
 use App\Controllers\NominaController;
 use App\Controllers\ParametrosController;
+use App\Controllers\FeriadosController;
 use App\Controllers\AdelantosController;
 use App\Controllers\SalariosController;
 use App\Controllers\AguinaldosController;
@@ -107,6 +108,18 @@ switch ($route) {
     case 'nacionalidades/delete':
         (new NacionalidadesController($db))->delete();
         break;
+    case 'feriados/create':
+        (new FeriadosController($db))->create();
+        break;
+    case 'feriados/list':
+        (new FeriadosController($db))->index();
+        break;
+    case 'feriados/edit':
+        (new FeriadosController($db))->edit();
+        break;
+    case 'feriados/delete':
+        (new FeriadosController($db))->delete();
+        break;
     case 'nomina/overview':
         (new NominaController($db))->overview();
         break;
@@ -199,6 +212,9 @@ switch ($route) {
         break;
     case 'marcaciones/importar':
         (new MarcacionesController($db))->importar();
+        break;
+    case 'marcaciones/horas':
+        (new MarcacionesController($db))->horas();
         break;
     default:
         (new InicioController($db))->index();

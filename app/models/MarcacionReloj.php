@@ -165,6 +165,55 @@ class MarcacionReloj
         ];
     }
 
+    public static function obtenerHorasPorDia(
+        Database $db,
+        string $nroIdReloj,
+        DateTime $inicio,
+        DateTime $fin
+    ): array {
+        $statement = $db->pdo()->prepare(
+            'SELECT check_time FROM marcaciones_reloj '
+            . 'WHERE nro_id_reloj = :nro_id_reloj AND check_time >= :inicio AND check_time <= :fin '
+            . 'ORDER BY check_time ASC'
+        );
+        $statement->execute([
+            ':nro_id_reloj' => $nroIdReloj,
+            ':inicio' => $inicio->format('Y-m-d H:i:s'),
+            ':fin' => $fin->format('Y-m-d H:i:s')
+        ]);
+
+        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
+        if (!$rows) {
+            return [];
+        }
+
+        $porDia = [];
+        foreach ($rows as $row) {
+            if (empty($row['check_time'])) {
+                continue;
+            }
+            $fechaHora = new DateTime($row['check_time']);
+            $fechaKey = $fechaHora->format('Y-m-d');
+            if (!isset($porDia[$fechaKey])) {
+                $porDia[$fechaKey] = [];
+            }
+            $porDia[$fechaKey][] = $fechaHora->format('H:i');
+        }
+
+        $resultado = [];
+        foreach ($porDia as $fecha => $marcas) {
+            $resultado[] = [
+                'fecha' => $fecha,
+                'entrada' => $marcas[0] ?? null,
+                'salida_almuerzo' => $marcas[1] ?? null,
+                'entrada_almuerzo' => $marcas[2] ?? null,
+                'salida' => $marcas[3] ?? null
+            ];
+        }
+
+        return $resultado;
+    }
+
     private static function calcularMinutosJornada(Turno $turno): int
     {
         $fechaBase = '2000-01-01 ';

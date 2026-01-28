@@ -4,8 +4,12 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Models\Feriado;
+use App\Models\Funcionario;
 use App\Models\MarcacionReloj;
 use DateTime;
+use DatePeriod;
+use DateInterval;
 use RuntimeException;
 
 class MarcacionesController extends Controller
@@ -45,6 +49,68 @@ class MarcacionesController extends Controller
             'errores' => $errores,
             'mensaje' => $mensaje,
             'resultado' => $resultado
+        ]);
+    }
+
+    public function horas(): void
+    {
+        $errores = [];
+        $funcionarios = Funcionario::conIdReloj($this->db);
+        $funcionarioId = isset($_GET['funcionario_id']) ? (int) $_GET['funcionario_id'] : null;
+        $fechaInicio = trim((string) ($_GET['fecha_inicio'] ?? ''));
+        $fechaFin = trim((string) ($_GET['fecha_fin'] ?? ''));
+        $funcionarioSeleccionado = null;
+        $horasPorDia = [];
+        $diasPeriodo = [];
+        $feriados = [];
+
+        if ($funcionarioId) {
+            $funcionarioSeleccionado = Funcionario::find($this->db, $funcionarioId);
+            $nroIdReloj = trim((string) ($funcionarioSeleccionado?->nroIdReloj ?? ''));
+            if ($nroIdReloj === '') {
+                $errores['funcionario_id'] = 'Seleccione un funcionario con ID de reloj.';
+            }
+        } elseif ($fechaInicio || $fechaFin) {
+            $errores['funcionario_id'] = 'Seleccione un funcionario válido.';
+        }
+
+        if (($fechaInicio && !$fechaFin) || (!$fechaInicio && $fechaFin)) {
+            $errores['fecha'] = 'Ingrese la fecha inicial y la fecha final.';
+        }
+
+        if (empty($errores) && $funcionarioSeleccionado && $fechaInicio && $fechaFin) {
+            try {
+                $inicio = new DateTime($fechaInicio . ' 00:00:00');
+                $fin = new DateTime($fechaFin . ' 23:59:59');
+                if ($inicio > $fin) {
+                    $errores['fecha'] = 'La fecha inicial no puede ser mayor a la fecha final.';
+                } else {
+                    $horasPorDia = MarcacionReloj::obtenerHorasPorDia(
+                        $this->db,
+                        (string) $funcionarioSeleccionado->nroIdReloj,
+                        $inicio,
+                        $fin
+                    );
+                    $feriados = Feriado::listarPorRango($this->db, $inicio, $fin);
+                    $periodo = new DatePeriod($inicio, new DateInterval('P1D'), (clone $fin)->modify('+1 day'));
+                    foreach ($periodo as $dia) {
+                        $diasPeriodo[] = $dia;
+                    }
+                }
+            } catch (\Exception $e) {
+                $errores['fecha'] = 'Las fechas ingresadas no son válidas.';
+            }
+        }
+
+        $this->view('marcaciones/horas', [
+            'errores' => $errores,
+            'funcionarios' => $funcionarios,
+            'funcionarioSeleccionado' => $funcionarioSeleccionado,
+            'fechaInicio' => $fechaInicio,
+            'fechaFin' => $fechaFin,
+            'horasPorDia' => $horasPorDia,
+            'diasPeriodo' => $diasPeriodo,
+            'feriados' => $feriados
         ]);
     }
 
