@@ -202,7 +202,7 @@ class MarcacionReloj
 
         $resultado = [];
         foreach ($porDia as $fecha => $marcas) {
-            $resultado[] = [
+            $resultado[$fecha] = [
                 'fecha' => $fecha,
                 'entrada' => $marcas[0] ?? null,
                 'salida_almuerzo' => $marcas[1] ?? null,
