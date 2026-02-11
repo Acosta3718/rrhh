@@ -16,7 +16,7 @@ class UsuariosController extends Controller
 
     public function index(): void
     {
-        Auth::requirePermission($this->db, 'usuarios.manage', $this->baseUrl());
+        Auth::requireSuperUser($this->db, $this->baseUrl());
         $mensaje = $this->consumeFlash();
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $perPage = 10;
@@ -35,7 +35,7 @@ class UsuariosController extends Controller
 
     public function create(): void
     {
-        Auth::requirePermission($this->db, 'usuarios.manage', $this->baseUrl());
+        Auth::requireSuperUser($this->db, $this->baseUrl());
         $usuario = null;
         $errores = [];
         $mensaje = $this->consumeFlash();
@@ -70,7 +70,7 @@ class UsuariosController extends Controller
 
     public function edit(): void
     {
-        Auth::requirePermission($this->db, 'usuarios.manage', $this->baseUrl());
+        Auth::requireSuperUser($this->db, $this->baseUrl());
         $id = (int) ($_GET['id'] ?? $_POST['id'] ?? 0);
         $usuario = Usuario::find($this->db, $id);
 
@@ -119,7 +119,7 @@ class UsuariosController extends Controller
 
     public function delete(): void
     {
-        Auth::requirePermission($this->db, 'usuarios.manage', $this->baseUrl());
+        Auth::requireSuperUser($this->db, $this->baseUrl());
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id > 0) {

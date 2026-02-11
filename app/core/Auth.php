@@ -6,6 +6,9 @@ use App\Models\Usuario;
 
 class Auth
 {
+    private const SUPER_USUARIO_ROL = 'super usuario';
+    private const SUPER_USUARIO_PERMISO = 'super.usuario';
+
     public static function check(): bool
     {
         return !empty($_SESSION['auth_user']);
@@ -32,7 +35,8 @@ class Auth
         $_SESSION['auth_user'] = [
             'id' => $usuario->id,
             'nombre' => $usuario->nombre,
-            'correo' => $usuario->correo
+            'correo' => $usuario->correo,
+            'es_super_usuario' => self::isSuperUser($db, (int) $usuario->id)
         ];
 
         return true;
@@ -69,10 +73,42 @@ class Auth
         return (bool) $statement->fetchColumn();
     }
 
+    public static function hasRole(Database $db, int $userId, string $nombre): bool
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT 1 FROM roles r '
+            . 'INNER JOIN usuarios_roles ur ON ur.rol_id = r.id '
+            . 'WHERE ur.usuario_id = :usuario_id AND LOWER(r.nombre) = LOWER(:nombre) '
+            . 'LIMIT 1'
+        );
+        $statement->execute([
+            ':usuario_id' => $userId,
+            ':nombre' => trim($nombre)
+        ]);
+
+        return (bool) $statement->fetchColumn();
+    }
+
+    public static function isSuperUser(Database $db, int $userId): bool
+    {
+        return self::hasRole($db, $userId, self::SUPER_USUARIO_ROL)
+            && self::hasPermission($db, $userId, self::SUPER_USUARIO_PERMISO);
+    }
+
     public static function requirePermission(Database $db, string $clave, string $baseUrl): void
     {
         $user = self::user();
         if (!$user || empty($user['id']) || !self::hasPermission($db, (int) $user['id'], $clave)) {
+            $_SESSION['flash'] = 'No tiene permisos para acceder a esta sección.';
+            header('Location: ' . $baseUrl . '/index.php');
+            exit;
+        }
+    }
+
+    public static function requireSuperUser(Database $db, string $baseUrl): void
+    {
+        $user = self::user();
+        if (!$user || empty($user['id']) || !self::isSuperUser($db, (int) $user['id'])) {
             $_SESSION['flash'] = 'No tiene permisos para acceder a esta sección.';
             header('Location: ' . $baseUrl . '/index.php');
             exit;

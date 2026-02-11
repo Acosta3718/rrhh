@@ -52,6 +52,14 @@ spl_autoload_register(function (string $class) {
 
 $db = new Database($config['db']);
 
+if (Auth::check()) {
+    $authUser = Auth::user();
+    $authUserId = (int) ($authUser['id'] ?? 0);
+    if ($authUserId > 0) {
+        $_SESSION['auth_user']['es_super_usuario'] = Auth::isSuperUser($db, $authUserId);
+    }
+}
+
 $route = $_GET['route'] ?? 'inicio';
 $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
 $publicRoutes = ['auth/login'];
