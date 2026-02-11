@@ -14,6 +14,11 @@ use App\Controllers\LiquidacionesController;
 use App\Controllers\MarcacionesController;
 use App\Controllers\TiposMovimientosController;
 use App\Controllers\TurnosController;
+use App\Controllers\AuthController;
+use App\Controllers\UsuariosController;
+use App\Controllers\RolesController;
+use App\Controllers\PermisosController;
+use App\Core\Auth;
 use App\Core\Database;
 
 session_start();
@@ -23,6 +28,11 @@ if (!file_exists($configFile)) {
     $configFile = __DIR__ . '/../config/config.example.php';
 }
 $config = require $configFile;
+$baseUrl = rtrim($config['app']['base_url'] ?? '', '/');
+if ($baseUrl === '') {
+    $baseUrl = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/'), '/');
+    $config['app']['base_url'] = $baseUrl === '' ? '/' : $baseUrl;
+} 
 $GLOBALS['app_config'] = $config;
 
 spl_autoload_register(function (string $class) {
@@ -43,8 +53,56 @@ spl_autoload_register(function (string $class) {
 $db = new Database($config['db']);
 
 $route = $_GET['route'] ?? 'inicio';
+$baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+$publicRoutes = ['auth/login'];
+
+if (!in_array($route, $publicRoutes, true)) {
+    Auth::requireAuth($baseUrl);
+}
 
 switch ($route) {
+    case 'auth/login':
+        (new AuthController($db))->login();
+        break;
+    case 'auth/logout':
+        (new AuthController($db))->logout();
+        break;
+    case 'usuarios/list':
+        (new UsuariosController($db))->index();
+        break;
+    case 'usuarios/create':
+        (new UsuariosController($db))->create();
+        break;
+    case 'usuarios/edit':
+        (new UsuariosController($db))->edit();
+        break;
+    case 'usuarios/delete':
+        (new UsuariosController($db))->delete();
+        break;
+    case 'roles/list':
+        (new RolesController($db))->index();
+        break;
+    case 'roles/create':
+        (new RolesController($db))->create();
+        break;
+    case 'roles/edit':
+        (new RolesController($db))->edit();
+        break;
+    case 'roles/delete':
+        (new RolesController($db))->delete();
+        break;
+    case 'permisos/list':
+        (new PermisosController($db))->index();
+        break;
+    case 'permisos/create':
+        (new PermisosController($db))->create();
+        break;
+    case 'permisos/edit':
+        (new PermisosController($db))->edit();
+        break;
+    case 'permisos/delete':
+        (new PermisosController($db))->delete();
+        break;
     case 'empresas':
         (new EmpresasController($db))->index();
         break;

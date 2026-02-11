@@ -171,6 +171,8 @@ class MarcacionReloj
         DateTime $inicio,
         DateTime $fin
     ): array {
+        $diarias = MarcacionDiaria::obtenerPorRango($db, $nroIdReloj, $inicio, $fin);
+        
         $statement = $db->pdo()->prepare(
             'SELECT check_time FROM marcaciones_reloj '
             . 'WHERE nro_id_reloj = :nro_id_reloj AND check_time >= :inicio AND check_time <= :fin '
@@ -183,10 +185,6 @@ class MarcacionReloj
         ]);
 
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
-        if (!$rows) {
-            return [];
-        }
-
         $porDia = [];
         foreach ($rows as $row) {
             if (empty($row['check_time'])) {
@@ -200,14 +198,18 @@ class MarcacionReloj
             $porDia[$fechaKey][] = $fechaHora->format('H:i');
         }
 
-        $resultado = [];
+        $resultado = $diarias;
         foreach ($porDia as $fecha => $marcas) {
+            if (isset($resultado[$fecha])) {
+                continue;
+            }
             $resultado[$fecha] = [
                 'fecha' => $fecha,
                 'entrada' => $marcas[0] ?? null,
                 'salida_almuerzo' => $marcas[1] ?? null,
                 'entrada_almuerzo' => $marcas[2] ?? null,
-                'salida' => $marcas[3] ?? null
+                'salida' => $marcas[3] ?? null,
+                'aplicar' => true
             ];
         }
 

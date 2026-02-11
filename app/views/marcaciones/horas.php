@@ -7,6 +7,7 @@ $fechaFin = $fechaFin ?? '';
 $horasPorDia = $horasPorDia ?? [];
 $diasPeriodo = $diasPeriodo ?? [];
 $feriados = $feriados ?? [];
+$mensaje = $mensaje ?? null;
 $funcionarioLabel = '';
 
 if ($funcionarioSeleccionado) {
@@ -31,6 +32,9 @@ $nombreDias = [
 
 <h2>Horas importadas por funcionario</h2>
 <p class="text-muted">Filtre por funcionario y rango de fechas para ver las marcaciones diarias.</p>
+<?php if ($mensaje): ?>
+    <div class="alert alert-success"><?php echo htmlspecialchars($mensaje); ?></div>
+<?php endif; ?>
 
 <form method="get" class="row g-3 mb-4">
     <input type="hidden" name="route" value="marcaciones/horas">
@@ -72,10 +76,17 @@ $nombreDias = [
     <div class="card">
         <div class="card-body">
             <h5 class="card-title mb-3">Marcaciones de <?php echo htmlspecialchars($funcionarioSeleccionado->nombre); ?></h5>
+            <?php if (!empty($errores['horas'])): ?>
+                <div class="alert alert-danger"><?php echo htmlspecialchars($errores['horas']); ?></div>
+            <?php endif; ?>
             <?php if (empty($diasPeriodo)): ?>
                 <p class="text-muted mb-0">No hay marcaciones importadas en el rango seleccionado.</p>
             <?php else: ?>
-                <div class="table-responsive">
+                <form method="post" class="table-responsive">
+                    <input type="hidden" name="route" value="marcaciones/horas">
+                    <input type="hidden" name="funcionario_id" value="<?php echo htmlspecialchars((string) $funcionarioSeleccionado->id); ?>">
+                    <input type="hidden" name="fecha_inicio" value="<?php echo htmlspecialchars($fechaInicio); ?>">
+                    <input type="hidden" name="fecha_fin" value="<?php echo htmlspecialchars($fechaFin); ?>">
                     <table class="table table-striped align-middle">
                         <thead>
                             <tr>
@@ -85,6 +96,7 @@ $nombreDias = [
                                 <th>Salida almuerzo</th>
                                 <th>Entrada almuerzo</th>
                                 <th>Salida</th>
+                                <th>Aplicar</th>
                                 <th>Observación</th>
                             </tr>
                         </thead>
@@ -108,11 +120,26 @@ $nombreDias = [
                                 ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($nombreDias[$diaSemana] ?? ''); ?></td>
-                                    <td><?php echo htmlspecialchars($fechaKey); ?></td>
-                                    <td><?php echo htmlspecialchars($registro['entrada'] ?? '--'); ?></td>
-                                    <td><?php echo htmlspecialchars($registro['salida_almuerzo'] ?? '--'); ?></td>
-                                    <td><?php echo htmlspecialchars($registro['entrada_almuerzo'] ?? '--'); ?></td>
-                                    <td><?php echo htmlspecialchars($registro['salida'] ?? '--'); ?></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($fechaKey); ?>
+                                        <input type="hidden" name="dias[]" value="<?php echo htmlspecialchars($fechaKey); ?>">
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control form-control-sm" name="entrada[<?php echo htmlspecialchars($fechaKey); ?>]" value="<?php echo htmlspecialchars($registro['entrada'] ?? ''); ?>">
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control form-control-sm" name="salida_almuerzo[<?php echo htmlspecialchars($fechaKey); ?>]" value="<?php echo htmlspecialchars($registro['salida_almuerzo'] ?? ''); ?>">
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control form-control-sm" name="entrada_almuerzo[<?php echo htmlspecialchars($fechaKey); ?>]" value="<?php echo htmlspecialchars($registro['entrada_almuerzo'] ?? ''); ?>">
+                                    </td>
+                                    <td>
+                                        <input type="time" class="form-control form-control-sm" name="salida[<?php echo htmlspecialchars($fechaKey); ?>]" value="<?php echo htmlspecialchars($registro['salida'] ?? ''); ?>">
+                                    </td>
+                                    <td class="text-center">
+                                        <?php $aplicarMarcacion = $registro['aplicar'] ?? true; ?>
+                                        <input class="form-check-input" type="checkbox" name="aplicar[<?php echo htmlspecialchars($fechaKey); ?>]" <?php echo $aplicarMarcacion ? 'checked' : ''; ?>>
+                                    </td>
                                     <td>
                                         <?php if ($observacion): ?>
                                             <span class="badge bg-secondary"><?php echo htmlspecialchars($observacion); ?></span>
@@ -124,7 +151,10 @@ $nombreDias = [
                             <?php endforeach; ?>
                         </tbody>
                     </table>
-                </div>
+                <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-success">Actualizar horas</button>
+                    </div>
+                </form>
             <?php endif; ?>
         </div>
     </div>

@@ -1,3 +1,8 @@
+<?php
+use App\Core\Auth;
+
+$authUser = Auth::user();
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -65,6 +70,32 @@
                     </ul>
                 </li>
                 <li class="nav-item"><a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=parametros">Parámetros</a></li>
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <?php if ($authUser): ?>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownAccesos" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Accesos
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownAccesos">
+                            <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=usuarios/list">Usuarios</a></li>
+                            <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=roles/list">Roles</a></li>
+                            <li><a class="dropdown-item" href="<?php echo $baseUrl; ?>/index.php?route=permisos/list">Permisos</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <span class="navbar-text text-white me-2">
+                            <?php echo htmlspecialchars($authUser['nombre'] ?? ''); ?>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=auth/logout">Salir</a>
+                    </li>
+                <?php else: ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=auth/login">Ingresar</a>
+                    </li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>

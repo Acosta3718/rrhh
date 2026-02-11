@@ -4,8 +4,10 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 use App\Core\Database;
+use App\Core\Auth;
 use App\Models\Feriado;
 use App\Models\Funcionario;
+use App\Models\MarcacionDiaria;
 use App\Models\MarcacionReloj;
 use DateTime;
 use DatePeriod;
@@ -64,6 +66,23 @@ class MarcacionesController extends Controller
         $diasPeriodo = [];
         $feriados = [];
 
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            Auth::requirePermission($this->db, 'marcaciones.editar', $this->baseUrl());
+            $resultadoActualizacion = $this->actualizarHoras();
+            if ($resultadoActualizacion['ok']) {
+                $_SESSION['flash'] = 'Marcaciones actualizadas correctamente.';
+                $this->redirectWithParams('marcaciones/horas', [
+                    'funcionario_id' => $resultadoActualizacion['funcionario_id'],
+                    'fecha_inicio' => $resultadoActualizacion['fecha_inicio'],
+                    'fecha_fin' => $resultadoActualizacion['fecha_fin']
+                ]);
+            }
+            $errores = array_merge($errores, $resultadoActualizacion['errores']);
+            $funcionarioId = $resultadoActualizacion['funcionario_id'];
+            $fechaInicio = $resultadoActualizacion['fecha_inicio'];
+            $fechaFin = $resultadoActualizacion['fecha_fin'];
+        }
+
         if ($funcionarioId) {
             $funcionarioSeleccionado = Funcionario::find($this->db, $funcionarioId);
             $nroIdReloj = trim((string) ($funcionarioSeleccionado?->nroIdReloj ?? ''));
@@ -104,6 +123,7 @@ class MarcacionesController extends Controller
 
         $this->view('marcaciones/horas', [
             'errores' => $errores,
+            'mensaje' => $this->consumeFlash(),
             'funcionarios' => $funcionarios,
             'funcionarioSeleccionado' => $funcionarioSeleccionado,
             'fechaInicio' => $fechaInicio,
@@ -135,6 +155,7 @@ class MarcacionesController extends Controller
 
         $insertados = 0;
         $omitidos = 0;
+        $fechasAActualizar = [];
 
         $statementFuncionario = $this->db->pdo()->prepare(
             'SELECT id FROM funcionarios WHERE nro_id_reloj = :nro_id_reloj LIMIT 1'
@@ -168,8 +189,25 @@ class MarcacionesController extends Controller
 
             if ($insertado) {
                 $insertados++;
+                $fechaKey = $checkTime->format('Y-m-d');
+                $fechasAActualizar[$nroIdReloj][$fechaKey] = [
+                    'fecha' => $fechaKey,
+                    'funcionario_id' => $funcionarioId ? (int) $funcionarioId : null
+                ];
             } else {
                 $omitidos++;
+            }
+        }
+
+        foreach ($fechasAActualizar as $nroIdReloj => $fechas) {
+            foreach ($fechas as $fechaData) {
+                $fecha = new DateTime($fechaData['fecha'] . ' 00:00:00');
+                MarcacionDiaria::sincronizarDesdeReloj(
+                    $this->db,
+                    $nroIdReloj,
+                    $fecha,
+                    $fechaData['funcionario_id']
+                );
             }
         }
 
@@ -187,5 +225,146 @@ class MarcacionesController extends Controller
         unset($_SESSION['flash']);
 
         return $mensaje;
+    }
+
+    private function actualizarHoras(): array
+    {
+        $errores = [];
+        $funcionarioId = (int) ($_POST['funcionario_id'] ?? 0);
+        $fechaInicio = trim((string) ($_POST['fecha_inicio'] ?? ''));
+        $fechaFin = trim((string) ($_POST['fecha_fin'] ?? ''));
+        $dias = $_POST['dias'] ?? [];
+        $entradas = $_POST['entrada'] ?? [];
+        $salidasAlmuerzo = $_POST['salida_almuerzo'] ?? [];
+        $entradasAlmuerzo = $_POST['entrada_almuerzo'] ?? [];
+        $salidas = $_POST['salida'] ?? [];
+        $aplicar = $_POST['aplicar'] ?? [];
+
+        if (!$funcionarioId) {
+            $errores['funcionario_id'] = 'Seleccione un funcionario válido.';
+        }
+
+        if (!$fechaInicio || !$fechaFin) {
+            $errores['fecha'] = 'Ingrese la fecha inicial y la fecha final.';
+        }
+
+        $funcionario = $funcionarioId ? Funcionario::find($this->db, $funcionarioId) : null;
+        if (!$funcionario) {
+            $errores['funcionario_id'] = 'Seleccione un funcionario válido.';
+        }
+
+        $nroIdReloj = trim((string) ($funcionario?->nroIdReloj ?? ''));
+        if ($funcionario && $nroIdReloj === '') {
+            $errores['funcionario_id'] = 'El funcionario no tiene ID de reloj.';
+        }
+
+        if (empty($dias)) {
+            $errores['general'] = 'No hay registros para actualizar.';
+        }
+
+        if (!empty($errores)) {
+            return [
+                'ok' => false,
+                'errores' => $errores,
+                'funcionario_id' => $funcionarioId,
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin
+            ];
+        }
+
+        $usuario = Auth::user();
+        $usuarioId = $usuario['id'] ?? null;
+        $horaRegex = '/^(2[0-3]|[01]\d):([0-5]\d)$/';
+        $erroresHoras = [];
+
+        foreach ($dias as $fecha) {
+            $fecha = trim((string) $fecha);
+            if ($fecha === '') {
+                continue;
+            }
+
+            $entrada = trim((string) ($entradas[$fecha] ?? ''));
+            $salidaAlmuerzo = trim((string) ($salidasAlmuerzo[$fecha] ?? ''));
+            $entradaAlmuerzo = trim((string) ($entradasAlmuerzo[$fecha] ?? ''));
+            $salida = trim((string) ($salidas[$fecha] ?? ''));
+
+            if ($entrada !== '' && !preg_match($horaRegex, $entrada)) {
+                $erroresHoras[$fecha][] = 'Entrada inválida.';
+            }
+            if ($salidaAlmuerzo !== '' && !preg_match($horaRegex, $salidaAlmuerzo)) {
+                $erroresHoras[$fecha][] = 'Salida almuerzo inválida.';
+            }
+            if ($entradaAlmuerzo !== '' && !preg_match($horaRegex, $entradaAlmuerzo)) {
+                $erroresHoras[$fecha][] = 'Entrada almuerzo inválida.';
+            }
+            if ($salida !== '' && !preg_match($horaRegex, $salida)) {
+                $erroresHoras[$fecha][] = 'Salida inválida.';
+            }
+        }
+
+        if (!empty($erroresHoras)) {
+            $errores['horas'] = 'Revise los horarios inválidos y vuelva a intentar.';
+            return [
+                'ok' => false,
+                'errores' => $errores,
+                'funcionario_id' => $funcionarioId,
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin
+            ];
+        }
+
+        foreach ($dias as $fecha) {
+            $fecha = trim((string) $fecha);
+            if ($fecha === '') {
+                continue;
+            }
+
+            $entrada = trim((string) ($entradas[$fecha] ?? ''));
+            $salidaAlmuerzo = trim((string) ($salidasAlmuerzo[$fecha] ?? ''));
+            $entradaAlmuerzo = trim((string) ($entradasAlmuerzo[$fecha] ?? ''));
+            $salida = trim((string) ($salidas[$fecha] ?? ''));
+
+            $entrada = $entrada !== '' ? $entrada : null;
+            $salidaAlmuerzo = $salidaAlmuerzo !== '' ? $salidaAlmuerzo : null;
+            $entradaAlmuerzo = $entradaAlmuerzo !== '' ? $entradaAlmuerzo : null;
+            $salida = $salida !== '' ? $salida : null;
+
+            MarcacionDiaria::upsert($this->db, [
+                'nro_id_reloj' => $nroIdReloj,
+                'funcionario_id' => $funcionarioId,
+                'fecha' => $fecha,
+                'entrada' => $entrada,
+                'salida_almuerzo' => $salidaAlmuerzo,
+                'entrada_almuerzo' => $entradaAlmuerzo,
+                'salida' => $salida,
+                'aplicar' => isset($aplicar[$fecha]),
+                'creado_en' => date('Y-m-d H:i:s'),
+                'actualizado_en' => date('Y-m-d H:i:s'),
+                'actualizado_por' => $usuarioId
+            ]);
+        }
+
+        return [
+            'ok' => true,
+            'errores' => [],
+            'funcionario_id' => $funcionarioId,
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin
+        ];
+    }
+
+    private function redirectWithParams(string $route, array $params): void
+    {
+        $config = $GLOBALS['app_config'] ?? [];
+        $baseUrl = rtrim($config['app']['base_url'] ?? '/public', '/');
+        $query = http_build_query(array_merge(['route' => $route], $params));
+        header('Location: ' . $baseUrl . '/index.php?' . $query);
+        exit;
+    }
+
+    private function baseUrl(): string
+    {
+        $config = $GLOBALS['app_config'] ?? [];
+        return rtrim($config['app']['base_url'] ?? '/public', '/');
     }
 }
