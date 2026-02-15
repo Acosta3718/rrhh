@@ -6,8 +6,8 @@ use App\Models\Usuario;
 
 class Auth
 {
-    private const SUPER_USUARIO_ROL = 'super usuario';
-    private const SUPER_USUARIO_PERMISO = 'super.usuario';
+    private const SUPER_USUARIO_ROLES = ['super usuario', 'superusuario', 'super_usuario', 'administrador'];
+    private const SUPER_USUARIO_PERMISOS = ['super.usuario', 'usuarios.list'];
 
     public static function check(): bool
     {
@@ -91,8 +91,19 @@ class Auth
 
     public static function isSuperUser(Database $db, int $userId): bool
     {
-        return self::hasRole($db, $userId, self::SUPER_USUARIO_ROL)
-            && self::hasPermission($db, $userId, self::SUPER_USUARIO_PERMISO);
+        foreach (self::SUPER_USUARIO_ROLES as $rol) {
+            if (self::hasRole($db, $userId, $rol)) {
+                return true;
+            }
+        }
+
+        foreach (self::SUPER_USUARIO_PERMISOS as $permiso) {
+            if (self::hasPermission($db, $userId, $permiso)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static function requirePermission(Database $db, string $clave, string $baseUrl): void
