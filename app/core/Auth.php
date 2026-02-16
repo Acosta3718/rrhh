@@ -6,8 +6,19 @@ use App\Models\Usuario;
 
 class Auth
 {
-    private const SUPER_USUARIO_ROLES = ['super usuario', 'superusuario', 'super_usuario', 'administrador'];
-    private const SUPER_USUARIO_PERMISOS = ['super.usuario', 'usuarios.list'];
+    private const SUPER_USUARIO_ROLES = [
+        'super usuario',
+        'superusuario',
+        'super_usuario',
+        'administrador',
+        'admin'
+    ];
+    private const SUPER_USUARIO_PERMISOS = [
+        'super.usuario',
+        'usuarios.list',
+        'roles.list',
+        'permisos.list'
+    ];
 
     public static function check(): bool
     {
@@ -91,19 +102,58 @@ class Auth
 
     public static function isSuperUser(Database $db, int $userId): bool
     {
-        foreach (self::SUPER_USUARIO_ROLES as $rol) {
-            if (self::hasRole($db, $userId, $rol)) {
-                return true;
-            }
+        $rolesUsuario = self::normalizedValues(self::userRoles($db, $userId));
+        $rolesSuperUsuario = self::normalizedValues(self::SUPER_USUARIO_ROLES);
+        if (!empty(array_intersect($rolesUsuario, $rolesSuperUsuario))) {
+            return true;
         }
 
-        foreach (self::SUPER_USUARIO_PERMISOS as $permiso) {
-            if (self::hasPermission($db, $userId, $permiso)) {
-                return true;
-            }
-        }
+        $permisosUsuario = self::normalizedValues(self::userPermissions($db, $userId));
+        $permisosSuperUsuario = self::normalizedValues(self::SUPER_USUARIO_PERMISOS);
 
-        return false;
+        return !empty(array_intersect($permisosUsuario, $permisosSuperUsuario));
+    }
+
+    private static function userRoles(Database $db, int $userId): array
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT r.nombre FROM roles r '
+            . 'INNER JOIN usuarios_roles ur ON ur.rol_id = r.id '
+            . 'WHERE ur.usuario_id = :usuario_id'
+        );
+        $statement->execute([':usuario_id' => $userId]);
+
+        return $statement->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+    }
+
+    private static function userPermissions(Database $db, int $userId): array
+    {
+        $statement = $db->pdo()->prepare(
+            'SELECT p.clave FROM permisos p '
+            . 'INNER JOIN roles_permisos rp ON rp.permiso_id = p.id '
+            . 'INNER JOIN usuarios_roles ur ON ur.rol_id = rp.rol_id '
+            . 'WHERE ur.usuario_id = :usuario_id'
+        );
+        $statement->execute([':usuario_id' => $userId]);
+
+        return $statement->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+    }
+
+    private static function normalizedValues(array $values): array
+    {
+        $normalized = array_map(
+            static function ($value): string {
+                $value = trim((string) $value);
+                if ($value === '') {
+                    return '';
+                }
+
+                return strtolower((string) preg_replace('/[^a-z0-9]/', '', (string) iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value)));
+            },
+            $values
+        );
+
+        return array_values(array_filter(array_unique($normalized)));
     }
 
     public static function requirePermission(Database $db, string $clave, string $baseUrl): void
