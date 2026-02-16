@@ -96,7 +96,7 @@ $esSuperUsuario = (bool) ($authUser['es_super_usuario'] ?? false);
                     </li>
                 <?php else: ?>
                     <li class="nav-item">
-                        <a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=auth/login">Ingresar</a>
+                        <a class="nav-link" href="<?php echo $baseUrl; ?>/index.php?route=auth/login">Iniciar sesión</a>
                     </li>
                 <?php endif; ?>
             </ul>

@@ -7,6 +7,7 @@ use App\Models\Usuario;
 class Auth
 {
     private const SUPER_USUARIO_ROLES = [
+        'root',
         'super usuario',
         'superusuario',
         'super_usuario',
@@ -148,7 +149,16 @@ class Auth
                     return '';
                 }
 
-                return strtolower((string) preg_replace('/[^a-z0-9]/', '', (string) iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value)));
+                if (function_exists('iconv')) {
+                    $transliterado = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+                    if ($transliterado !== false) {
+                        $value = (string) $transliterado;
+                    }
+                }
+
+                $value = (string) preg_replace('/[^a-z0-9]/i', '', $value);
+
+                return strtolower($value);
             },
             $values
         );

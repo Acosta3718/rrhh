@@ -23,5 +23,5 @@
             <div class="text-danger small mt-1"><?php echo htmlspecialchars($errores['password']); ?></div>
         <?php endif; ?>
     </div>
-    <button type="submit" class="btn btn-primary">Ingresar</button>
+    <button type="submit" class="btn btn-primary">Iniciar sesión</button>
 </form>
