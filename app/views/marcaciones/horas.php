@@ -8,6 +8,7 @@ $horasPorDia = $horasPorDia ?? [];
 $diasPeriodo = $diasPeriodo ?? [];
 $feriados = $feriados ?? [];
 $mensaje = $mensaje ?? null;
+$totalMinutosPeriodo = (int) ($totalMinutosPeriodo ?? 0);
 $funcionarioLabel = '';
 
 if ($funcionarioSeleccionado) {
@@ -17,6 +18,39 @@ if ($funcionarioSeleccionado) {
         $funcionarioSeleccionado->nroDocumento,
         $funcionarioSeleccionado->nroIdReloj
     );
+}
+
+
+function minutosAHoras(int $minutos): string
+{
+    $horas = intdiv(max(0, $minutos), 60);
+    $resto = max(0, $minutos) % 60;
+
+    return sprintf('%02d:%02d', $horas, $resto);
+}
+
+function calcularMinutosRegistro(array $registro): int
+{
+    $segmentos = [
+        [$registro['entrada'] ?? null, $registro['salida_almuerzo'] ?? null],
+        [$registro['entrada_almuerzo'] ?? null, $registro['salida'] ?? null]
+    ];
+
+    $total = 0;
+    foreach ($segmentos as [$inicio, $fin]) {
+        if (!$inicio || !$fin) {
+            continue;
+        }
+        $inicioObj = DateTime::createFromFormat('H:i', $inicio);
+        $finObj = DateTime::createFromFormat('H:i', $fin);
+        if (!$inicioObj || !$finObj) {
+            continue;
+        }
+        $minutos = (int) round(($finObj->getTimestamp() - $inicioObj->getTimestamp()) / 60);
+        $total += max(0, $minutos);
+    }
+
+    return $total;
 }
 
 $nombreDias = [
@@ -96,6 +130,7 @@ $nombreDias = [
                                 <th>Salida almuerzo</th>
                                 <th>Entrada almuerzo</th>
                                 <th>Salida</th>
+                                <th>Total horas día</th>
                                 <th>Aplicar</th>
                                 <th>Observación</th>
                             </tr>
@@ -117,6 +152,7 @@ $nombreDias = [
                                 } elseif (!$registro) {
                                     $observacion = 'No trabajado';
                                 }
+                                $minutosDia = $registro ? calcularMinutosRegistro($registro) : 0;
                                 ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($nombreDias[$diaSemana] ?? ''); ?></td>
@@ -136,6 +172,7 @@ $nombreDias = [
                                     <td>
                                         <input type="time" class="form-control form-control-sm" name="salida[<?php echo htmlspecialchars($fechaKey); ?>]" value="<?php echo htmlspecialchars($registro['salida'] ?? ''); ?>">
                                     </td>
+                                    <td class="fw-semibold text-nowrap"><?php echo htmlspecialchars(minutosAHoras($minutosDia)); ?></td>
                                     <td class="text-center">
                                         <?php $aplicarMarcacion = $registro['aplicar'] ?? true; ?>
                                         <input class="form-check-input" type="checkbox" name="aplicar[<?php echo htmlspecialchars($fechaKey); ?>]" <?php echo $aplicarMarcacion ? 'checked' : ''; ?>>
@@ -150,6 +187,13 @@ $nombreDias = [
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="6" class="text-end">Total horas del rango:</th>
+                                <th class="text-nowrap"><?php echo htmlspecialchars(minutosAHoras($totalMinutosPeriodo)); ?></th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
                     </table>
                 <div class="d-flex justify-content-end">
                         <button type="submit" class="btn btn-success">Actualizar horas</button>

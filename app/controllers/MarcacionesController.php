@@ -25,11 +25,31 @@ class MarcacionesController extends Controller
         $errores = [];
         $mensaje = $this->consumeFlash();
         $resultado = null;
+        $fechaInicio = trim((string) ($_POST['fecha_inicio'] ?? ''));
+        $fechaFin = trim((string) ($_POST['fecha_fin'] ?? ''));
+        $inicioFiltro = null;
+        $finFiltro = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (($fechaInicio && !$fechaFin) || (!$fechaInicio && $fechaFin)) {
+                $errores['fecha'] = 'Ingrese la fecha inicial y la fecha final para filtrar la importación.';
+            } elseif ($fechaInicio && $fechaFin) {
+                try {
+                    $inicioFiltro = new DateTime($fechaInicio . ' 00:00:00');
+                    $finFiltro = new DateTime($fechaFin . ' 23:59:59');
+                    if ($inicioFiltro > $finFiltro) {
+                        $errores['fecha'] = 'La fecha inicial no puede ser mayor a la fecha final.';
+                    }
+                } catch (\Exception $e) {
+                    $errores['fecha'] = 'Las fechas ingresadas no son válidas.';
+                }
+            }
+
             if (empty($_FILES['archivo_access']['tmp_name'])) {
                 $errores['archivo_access'] = 'Seleccione un archivo de Access.';
-            } else {
+            }
+
+            if (empty($errores)) {
                 $archivo = $_FILES['archivo_access'];
                 $nombre = $archivo['name'] ?? 'reloj.access';
                 $rutaDestino = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . uniqid('reloj_', true) . '_' . $nombre;
@@ -38,7 +58,7 @@ class MarcacionesController extends Controller
                     $errores['archivo_access'] = 'No se pudo cargar el archivo seleccionado.';
                 } else {
                     try {
-                        $resultado = $this->importarDesdeAccess($rutaDestino);
+                        $resultado = $this->importarDesdeAccess($rutaDestino, $inicioFiltro, $finFiltro);
                         $mensaje = 'Importación finalizada.';
                     } catch (RuntimeException $e) {
                         $errores['archivo_access'] = $e->getMessage();
@@ -50,7 +70,9 @@ class MarcacionesController extends Controller
         $this->view('marcaciones/import', [
             'errores' => $errores,
             'mensaje' => $mensaje,
-            'resultado' => $resultado
+            'resultado' => $resultado,
+            'fechaInicio' => $fechaInicio,
+            'fechaFin' => $fechaFin
         ]);
     }
 
@@ -65,6 +87,7 @@ class MarcacionesController extends Controller
         $horasPorDia = [];
         $diasPeriodo = [];
         $feriados = [];
+        $totalMinutosPeriodo = 0;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Auth::requirePermission($this->db, 'marcaciones.editar', $this->baseUrl());
@@ -114,6 +137,11 @@ class MarcacionesController extends Controller
                     $periodo = new DatePeriod($inicio, new DateInterval('P1D'), (clone $fin)->modify('+1 day'));
                     foreach ($periodo as $dia) {
                         $diasPeriodo[] = $dia;
+                        $fechaKey = $dia->format('Y-m-d');
+                        $registro = $horasPorDia[$fechaKey] ?? null;
+                        if ($registro) {
+                            $totalMinutosPeriodo += $this->calcularMinutosTrabajadosDia($registro);
+                        }
                     }
                 }
             } catch (\Exception $e) {
@@ -130,11 +158,12 @@ class MarcacionesController extends Controller
             'fechaFin' => $fechaFin,
             'horasPorDia' => $horasPorDia,
             'diasPeriodo' => $diasPeriodo,
-            'feriados' => $feriados
+            'feriados' => $feriados,
+            'totalMinutosPeriodo' => $totalMinutosPeriodo
         ]);
     }
 
-    private function importarDesdeAccess(string $rutaArchivo): array
+    private function importarDesdeAccess(string $rutaArchivo, ?DateTime $inicioFiltro = null, ?DateTime $finFiltro = null): array
     {
         if (!extension_loaded('odbc')) {
             throw new RuntimeException('La extensión ODBC no está disponible en el servidor.');
@@ -147,7 +176,15 @@ class MarcacionesController extends Controller
             throw new RuntimeException('No se pudo abrir el archivo de Access. Verifique el driver ODBC.');
         }
 
-        $resultado = odbc_exec($conexion, 'SELECT userid, checktime FROM CHECKINOUT');
+        $query = 'SELECT userid, checktime FROM CHECKINOUT';
+        if ($inicioFiltro && $finFiltro) {
+            $query .= sprintf(
+                " WHERE checktime >= #%s# AND checktime <= #%s#",
+                $inicioFiltro->format('Y-m-d H:i:s'),
+                $finFiltro->format('Y-m-d H:i:s')
+            );
+        }
+        $resultado = odbc_exec($conexion, $query);
         if (!$resultado) {
             odbc_close($conexion);
             throw new RuntimeException('No se pudo leer la tabla CHECKINOUT.');
@@ -217,6 +254,38 @@ class MarcacionesController extends Controller
             'insertados' => $insertados,
             'omitidos' => $omitidos
         ];
+    }
+
+    private function calcularMinutosTrabajadosDia(array $registro): int
+    {
+        $segmentos = [
+            [$registro['entrada'] ?? null, $registro['salida_almuerzo'] ?? null],
+            [$registro['entrada_almuerzo'] ?? null, $registro['salida'] ?? null]
+        ];
+
+        $total = 0;
+        foreach ($segmentos as [$inicio, $fin]) {
+            $total += $this->calcularMinutosSegmento($inicio, $fin);
+        }
+
+        return $total;
+    }
+
+    private function calcularMinutosSegmento(?string $inicio, ?string $fin): int
+    {
+        if (!$inicio || !$fin) {
+            return 0;
+        }
+
+        $inicioObj = DateTime::createFromFormat('H:i', $inicio);
+        $finObj = DateTime::createFromFormat('H:i', $fin);
+        if (!$inicioObj || !$finObj) {
+            return 0;
+        }
+
+        $diferencia = (int) round(($finObj->getTimestamp() - $inicioObj->getTimestamp()) / 60);
+
+        return max(0, $diferencia);
     }
 
     private function consumeFlash(): ?string
