@@ -13,10 +13,7 @@
             <th>Nombre</th>
             <th>Inicio</th>
             <th>Fin</th>
-            <th>Entrada</th>
-            <th>Salida almuerzo</th>
-            <th>Retorno almuerzo</th>
-            <th>Salida</th>
+            <th>Horario por día (resumen)</th>
             <th class="text-end">Acciones</th>
         </tr>
     </thead>
@@ -26,10 +23,7 @@
                 <td><?php echo htmlspecialchars($turno->nombre); ?></td>
                 <td><?php echo htmlspecialchars($turno->fechaInicio?->format('Y-m-d') ?? ''); ?></td>
                 <td><?php echo htmlspecialchars($turno->fechaFin?->format('Y-m-d') ?? ''); ?></td>
-                <td><?php echo htmlspecialchars($turno->horaEntrada); ?></td>
-                <td><?php echo htmlspecialchars($turno->horaSalidaAlmuerzo); ?></td>
-                <td><?php echo htmlspecialchars($turno->horaRetornoAlmuerzo); ?></td>
-                <td><?php echo htmlspecialchars($turno->horaSalida); ?></td>
+                <td><?php echo htmlspecialchars($turno->resumenHorario()); ?></td>
                 <td class="text-end">
                     <a class="btn btn-sm btn-secondary" href="<?php echo $baseUrl; ?>/index.php?route=turnos/edit&id=<?php echo $turno->id; ?>">Editar</a>
                     <form action="<?php echo $baseUrl; ?>/index.php?route=turnos/delete" method="post" class="d-inline" onsubmit="return confirm('¿Confirma eliminar el turno?');">
@@ -40,7 +34,7 @@
             </tr>
         <?php endforeach; ?>
         <?php if (empty($turnos)): ?>
-            <tr><td colspan="8" class="text-muted">No hay registros.</td></tr>
+            <tr><td colspan="5" class="text-muted">No hay registros.</td></tr>
         <?php endif; ?>
     </tbody>
 </table>

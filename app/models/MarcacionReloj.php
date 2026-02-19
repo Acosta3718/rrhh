@@ -100,8 +100,9 @@ class MarcacionReloj
                 continue;
             }
 
-            $entrada = new DateTime($fecha->format('Y-m-d') . ' ' . $turno->horaEntrada);
-            $salida = new DateTime($fecha->format('Y-m-d') . ' ' . $turno->horaSalida);
+            $horarioDia = $turno->obtenerHorarioParaFecha($fecha);
+            $entrada = new DateTime($fecha->format('Y-m-d') . ' ' . ($horarioDia['hora_entrada'] ?? $turno->horaEntrada));
+            $salida = new DateTime($fecha->format('Y-m-d') . ' ' . ($horarioDia['hora_salida'] ?? $turno->horaSalida));
 
             if ($primera > $entrada) {
                 $minutosTarde += (int) round(($primera->getTimestamp() - $entrada->getTimestamp()) / 60);
@@ -116,7 +117,7 @@ class MarcacionReloj
             }
         }
 
-        $minutosJornada = self::calcularMinutosJornada($turno);
+        $minutosJornada = $turno->obtenerMinutosJornadaPromedio();
         if ($minutosJornada <= 0) {
             return ['movimientos' => [], 'total_creditos' => 0.0, 'total_debitos' => 0.0];
         }
@@ -214,19 +215,5 @@ class MarcacionReloj
         }
 
         return $resultado;
-    }
-
-    private static function calcularMinutosJornada(Turno $turno): int
-    {
-        $fechaBase = '2000-01-01 ';
-        $entrada = new DateTime($fechaBase . $turno->horaEntrada);
-        $salida = new DateTime($fechaBase . $turno->horaSalida);
-        $salidaAlmuerzo = new DateTime($fechaBase . $turno->horaSalidaAlmuerzo);
-        $retornoAlmuerzo = new DateTime($fechaBase . $turno->horaRetornoAlmuerzo);
-
-        $minutosTotales = (int) round(($salida->getTimestamp() - $entrada->getTimestamp()) / 60);
-        $minutosAlmuerzo = (int) round(($retornoAlmuerzo->getTimestamp() - $salidaAlmuerzo->getTimestamp()) / 60);
-
-        return max(0, $minutosTotales - $minutosAlmuerzo);
     }
 }
