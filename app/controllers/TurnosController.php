@@ -117,11 +117,15 @@ class TurnosController extends Controller
         $fechaFin = !empty($_POST['fecha_fin']) ? new DateTime($_POST['fecha_fin']) : null;
         $horariosPorDia = [];
         foreach (Turno::diasSemana() as $dia) {
+            $activo = isset($_POST['horarios_por_dia'][$dia]['activo'])
+                ? (string) $_POST['horarios_por_dia'][$dia]['activo'] === '1'
+                : false;
             $horariosPorDia[$dia] = [
-                'hora_entrada' => $_POST['horarios_por_dia'][$dia]['hora_entrada'] ?? '',
-                'hora_salida_almuerzo' => $_POST['horarios_por_dia'][$dia]['hora_salida_almuerzo'] ?? '',
-                'hora_retorno_almuerzo' => $_POST['horarios_por_dia'][$dia]['hora_retorno_almuerzo'] ?? '',
-                'hora_salida' => $_POST['horarios_por_dia'][$dia]['hora_salida'] ?? ''
+                'activo' => $activo,
+                'hora_entrada' => $_POST['horarios_por_dia'][$dia]['hora_entrada'] ?? '00:00',
+                'hora_salida_almuerzo' => $_POST['horarios_por_dia'][$dia]['hora_salida_almuerzo'] ?? '00:00',
+                'hora_retorno_almuerzo' => $_POST['horarios_por_dia'][$dia]['hora_retorno_almuerzo'] ?? '00:00',
+                'hora_salida' => $_POST['horarios_por_dia'][$dia]['hora_salida'] ?? '00:00'
             ];
         }
 

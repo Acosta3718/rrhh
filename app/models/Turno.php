@@ -59,9 +59,14 @@ class Turno
         }
 
         foreach ($this->horariosPorDia as $dia => $horario) {
+            $activo = (bool) ($horario['activo'] ?? true);
+            if (!$activo) {
+                continue;
+            }
+
             foreach (['hora_entrada', 'hora_salida_almuerzo', 'hora_retorno_almuerzo', 'hora_salida'] as $campo) {
-                if (trim((string) ($horario[$campo] ?? '')) === '') {
-                    $errores[$dia . '_' . $campo] = 'El horario es obligatorio';
+                if (!self::esHoraValida($horario[$campo] ?? null)) {
+                    $errores[$dia . '_' . $campo] = 'Ingrese una hora válida en formato HH:MM';
                 }
             }
         }
@@ -203,12 +208,19 @@ class Turno
     {
         $indice = (int) $fecha->format('w');
         $dia = self::DIAS_SEMANA[$indice] ?? 'lunes';
-        return $this->horariosPorDia[$dia] ?? [
+        $horario = $this->horariosPorDia[$dia] ?? [
+            'activo' => true,
             'hora_entrada' => $this->horaEntrada,
             'hora_salida_almuerzo' => $this->horaSalidaAlmuerzo,
             'hora_retorno_almuerzo' => $this->horaRetornoAlmuerzo,
             'hora_salida' => $this->horaSalida
         ];
+
+        if (!(bool) ($horario['activo'] ?? true)) {
+            return self::horarioCero(false);
+        }
+
+        return $horario;
     }
 
     public function obtenerMinutosJornadaPromedio(): int
@@ -216,6 +228,10 @@ class Turno
         $total = 0;
         $cantidad = 0;
         foreach ($this->horariosPorDia as $horario) {
+            if (!(bool) ($horario['activo'] ?? true)) {
+                continue;
+            }
+
             $minutos = self::calcularMinutosDesdeHorario($horario);
             if ($minutos > 0) {
                 $total += $minutos;
@@ -237,9 +253,17 @@ class Turno
 
     public function resumenHorario(): string
     {
+        $diasActivos = array_filter(
+            $this->horariosPorDia,
+            static fn(array $horario): bool => (bool) ($horario['activo'] ?? true)
+        );
+        if (empty($diasActivos)) {
+            return 'Sin días laborables';
+        }
+
         $lunes = $this->horariosPorDia['lunes'] ?? null;
         $sabado = $this->horariosPorDia['sabado'] ?? null;
-        if (!$lunes || !$sabado) {
+        if (!$lunes || !$sabado || !(bool) ($lunes['activo'] ?? true) || !(bool) ($sabado['activo'] ?? true)) {
             return $this->horaEntrada . ' - ' . $this->horaSalida;
         }
 
@@ -251,12 +275,20 @@ class Turno
         $normalizado = [];
         foreach (self::DIAS_SEMANA as $dia) {
             $origen = is_array($horariosPorDia[$dia] ?? null) ? $horariosPorDia[$dia] : [];
-            $normalizado[$dia] = [
-                'hora_entrada' => (string) ($origen['hora_entrada'] ?? $default['hora_entrada'] ?? ''),
-                'hora_salida_almuerzo' => (string) ($origen['hora_salida_almuerzo'] ?? $default['hora_salida_almuerzo'] ?? ''),
-                'hora_retorno_almuerzo' => (string) ($origen['hora_retorno_almuerzo'] ?? $default['hora_retorno_almuerzo'] ?? ''),
-                'hora_salida' => (string) ($origen['hora_salida'] ?? $default['hora_salida'] ?? '')
+            $activo = isset($origen['activo']) ? (bool) $origen['activo'] : true;
+            $horarioDia = [
+                'activo' => $activo,
+                'hora_entrada' => self::normalizarHora($origen['hora_entrada'] ?? $default['hora_entrada'] ?? ''),
+                'hora_salida_almuerzo' => self::normalizarHora($origen['hora_salida_almuerzo'] ?? $default['hora_salida_almuerzo'] ?? ''),
+                'hora_retorno_almuerzo' => self::normalizarHora($origen['hora_retorno_almuerzo'] ?? $default['hora_retorno_almuerzo'] ?? ''),
+                'hora_salida' => self::normalizarHora($origen['hora_salida'] ?? $default['hora_salida'] ?? '')
             ];
+
+            if (!$activo) {
+                $horarioDia = self::horarioCero(false);
+            }
+
+            $normalizado[$dia] = $horarioDia;
         }
 
         return $normalizado;
@@ -274,5 +306,35 @@ class Turno
         $minutosAlmuerzo = (int) round(($retornoAlmuerzo->getTimestamp() - $salidaAlmuerzo->getTimestamp()) / 60);
 
         return max(0, $minutosTotales - $minutosAlmuerzo);
+    }
+
+    private static function normalizarHora(mixed $valor): string
+    {
+        $hora = trim((string) $valor);
+        if ($hora === '') {
+            return '00:00';
+        }
+
+        return self::esHoraValida($hora) ? $hora : '00:00';
+    }
+
+    private static function esHoraValida(mixed $hora): bool
+    {
+        if (!is_string($hora)) {
+            return false;
+        }
+
+        return (bool) preg_match('/^([01]\\d|2[0-3]):([0-5]\\d)$/', trim($hora));
+    }
+
+    private static function horarioCero(bool $activo): array
+    {
+        return [
+            'activo' => $activo,
+            'hora_entrada' => '00:00',
+            'hora_salida_almuerzo' => '00:00',
+            'hora_retorno_almuerzo' => '00:00',
+            'hora_salida' => '00:00'
+        ];
     }
 }
