@@ -13,7 +13,7 @@ class MarcacionDiaria
         $statement = $db->pdo()->prepare(
             'SELECT * FROM marcaciones_reloj_diarias '
             . 'WHERE nro_id_reloj = :nro_id_reloj AND fecha >= :inicio AND fecha <= :fin '
-            . 'ORDER BY fecha ASC'
+            . 'ORDER BY fecha ASC, actualizado_en DESC, creado_en DESC'
         );
         $statement->execute([
             ':nro_id_reloj' => $nroIdReloj,
@@ -28,6 +28,9 @@ class MarcacionDiaria
                 continue;
             }
             $fecha = $row['fecha'];
+            if (isset($resultado[$fecha])) {
+                continue;
+            }
             $resultado[$fecha] = [
                 'fecha' => $fecha,
                 'entrada' => $row['entrada'] ?? null,
@@ -44,20 +47,41 @@ class MarcacionDiaria
     public static function upsert(Database $db, array $data): void
     {
         $statement = $db->pdo()->prepare(
+            'UPDATE marcaciones_reloj_diarias SET '
+            . 'funcionario_id = :funcionario_id, '
+            . 'entrada = :entrada, '
+            . 'salida_almuerzo = :salida_almuerzo, '
+            . 'entrada_almuerzo = :entrada_almuerzo, '
+            . 'salida = :salida, '
+            . 'aplicar = :aplicar, '
+            . 'actualizado_en = :actualizado_en, '
+            . 'actualizado_por = :actualizado_por '
+            . 'WHERE nro_id_reloj = :nro_id_reloj AND fecha = :fecha'
+        );
+
+        $statement->execute([
+            ':nro_id_reloj' => $data['nro_id_reloj'],
+            ':funcionario_id' => $data['funcionario_id'],
+            ':fecha' => $data['fecha'],
+            ':entrada' => $data['entrada'],
+            ':salida_almuerzo' => $data['salida_almuerzo'],
+            ':entrada_almuerzo' => $data['entrada_almuerzo'],
+            ':salida' => $data['salida'],
+            ':aplicar' => $data['aplicar'] ? 1 : 0,
+            ':actualizado_en' => $data['actualizado_en'],
+            ':actualizado_por' => $data['actualizado_por']
+        ]);
+
+        if ($statement->rowCount() > 0) {
+            return;
+        }
+
+        $statement = $db->pdo()->prepare(
             'INSERT INTO marcaciones_reloj_diarias '
             . '(nro_id_reloj, funcionario_id, fecha, entrada, salida_almuerzo, entrada_almuerzo, salida, aplicar, '
             . 'creado_en, actualizado_en, actualizado_por) '
             . 'VALUES (:nro_id_reloj, :funcionario_id, :fecha, :entrada, :salida_almuerzo, :entrada_almuerzo, :salida, '
-            . ':aplicar, :creado_en, :actualizado_en, :actualizado_por) '
-            . 'ON DUPLICATE KEY UPDATE '
-            . 'funcionario_id = VALUES(funcionario_id), '
-            . 'entrada = VALUES(entrada), '
-            . 'salida_almuerzo = VALUES(salida_almuerzo), '
-            . 'entrada_almuerzo = VALUES(entrada_almuerzo), '
-            . 'salida = VALUES(salida), '
-            . 'aplicar = VALUES(aplicar), '
-            . 'actualizado_en = VALUES(actualizado_en), '
-            . 'actualizado_por = VALUES(actualizado_por)'
+            . ':aplicar, :creado_en, :actualizado_en, :actualizado_por)'
         );
 
         $statement->execute([
@@ -98,18 +122,39 @@ class MarcacionDiaria
             }
         }
 
+        $horas = self::mapearHorasSegunMarcaciones($marcas);
+
         self::upsert($db, [
             'nro_id_reloj' => $nroIdReloj,
             'funcionario_id' => $funcionarioId,
             'fecha' => $fecha->format('Y-m-d'),
-            'entrada' => $marcas[0] ?? null,
-            'salida_almuerzo' => $marcas[1] ?? null,
-            'entrada_almuerzo' => $marcas[2] ?? null,
-            'salida' => $marcas[3] ?? null,
+            'entrada' => $horas['entrada'],
+            'salida_almuerzo' => $horas['salida_almuerzo'],
+            'entrada_almuerzo' => $horas['entrada_almuerzo'],
+            'salida' => $horas['salida'],
             'aplicar' => true,
             'creado_en' => date('Y-m-d H:i:s'),
             'actualizado_en' => date('Y-m-d H:i:s'),
             'actualizado_por' => null
         ]);
+    }
+
+    public static function mapearHorasSegunMarcaciones(array $marcas): array
+    {
+        if (count($marcas) === 2) {
+            return [
+                'entrada' => $marcas[0] ?? null,
+                'salida_almuerzo' => null,
+                'entrada_almuerzo' => null,
+                'salida' => $marcas[1] ?? null,
+            ];
+        }
+
+        return [
+            'entrada' => $marcas[0] ?? null,
+            'salida_almuerzo' => $marcas[1] ?? null,
+            'entrada_almuerzo' => $marcas[2] ?? null,
+            'salida' => $marcas[3] ?? null,
+        ];
     }
 }

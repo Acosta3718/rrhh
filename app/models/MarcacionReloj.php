@@ -204,12 +204,14 @@ class MarcacionReloj
             if (isset($resultado[$fecha])) {
                 continue;
             }
+
+            $horas = MarcacionDiaria::mapearHorasSegunMarcaciones($marcas);
             $resultado[$fecha] = [
                 'fecha' => $fecha,
-                'entrada' => $marcas[0] ?? null,
-                'salida_almuerzo' => $marcas[1] ?? null,
-                'entrada_almuerzo' => $marcas[2] ?? null,
-                'salida' => $marcas[3] ?? null,
+                'entrada' => $horas['entrada'],
+                'salida_almuerzo' => $horas['salida_almuerzo'],
+                'entrada_almuerzo' => $horas['entrada_almuerzo'],
+                'salida' => $horas['salida'],
                 'aplicar' => true
             ];
         }
