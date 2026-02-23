@@ -336,7 +336,6 @@ class MarcacionesController extends Controller
 
         $usuario = Auth::user();
         $usuarioId = $usuario['id'] ?? null;
-        $horaRegex = '/^(2[0-3]|[01]\d):([0-5]\d)$/';
         $erroresHoras = [];
 
         foreach ($dias as $fecha) {
@@ -350,16 +349,16 @@ class MarcacionesController extends Controller
             $entradaAlmuerzo = trim((string) ($entradasAlmuerzo[$fecha] ?? ''));
             $salida = trim((string) ($salidas[$fecha] ?? ''));
 
-            if ($entrada !== '' && !preg_match($horaRegex, $entrada)) {
+            if ($entrada !== '' && $this->normalizarHora($entrada) === null) {
                 $erroresHoras[$fecha][] = 'Entrada inválida.';
             }
-            if ($salidaAlmuerzo !== '' && !preg_match($horaRegex, $salidaAlmuerzo)) {
+            if ($salidaAlmuerzo !== '' && $this->normalizarHora($salidaAlmuerzo) === null) {
                 $erroresHoras[$fecha][] = 'Salida almuerzo inválida.';
             }
-            if ($entradaAlmuerzo !== '' && !preg_match($horaRegex, $entradaAlmuerzo)) {
+            if ($entradaAlmuerzo !== '' && $this->normalizarHora($entradaAlmuerzo) === null) {
                 $erroresHoras[$fecha][] = 'Entrada almuerzo inválida.';
             }
-            if ($salida !== '' && !preg_match($horaRegex, $salida)) {
+            if ($salida !== '' && $this->normalizarHora($salida) === null) {
                 $erroresHoras[$fecha][] = 'Salida inválida.';
             }
         }
@@ -386,10 +385,10 @@ class MarcacionesController extends Controller
             $entradaAlmuerzo = trim((string) ($entradasAlmuerzo[$fecha] ?? ''));
             $salida = trim((string) ($salidas[$fecha] ?? ''));
 
-            $entrada = $entrada !== '' ? $entrada : null;
-            $salidaAlmuerzo = $salidaAlmuerzo !== '' ? $salidaAlmuerzo : null;
-            $entradaAlmuerzo = $entradaAlmuerzo !== '' ? $entradaAlmuerzo : null;
-            $salida = $salida !== '' ? $salida : null;
+            $entrada = $entrada !== '' ? $this->normalizarHora($entrada) : null;
+            $salidaAlmuerzo = $salidaAlmuerzo !== '' ? $this->normalizarHora($salidaAlmuerzo) : null;
+            $entradaAlmuerzo = $entradaAlmuerzo !== '' ? $this->normalizarHora($entradaAlmuerzo) : null;
+            $salida = $salida !== '' ? $this->normalizarHora($salida) : null;
 
             MarcacionDiaria::upsert($this->db, [
                 'nro_id_reloj' => $nroIdReloj,
@@ -413,6 +412,27 @@ class MarcacionesController extends Controller
             'fecha_inicio' => $fechaInicio,
             'fecha_fin' => $fechaFin
         ];
+    }
+
+
+    private function normalizarHora(string $hora): ?string
+    {
+        $hora = trim($hora);
+        if ($hora === '') {
+            return null;
+        }
+
+        $horaObj = DateTime::createFromFormat('H:i', $hora);
+        if ($horaObj instanceof DateTime) {
+            return $horaObj->format('H:i:s');
+        }
+
+        $horaObj = DateTime::createFromFormat('H:i:s', $hora);
+        if ($horaObj instanceof DateTime) {
+            return $horaObj->format('H:i:s');
+        }
+
+        return null;
     }
 
     private function redirectWithParams(string $route, array $params): void

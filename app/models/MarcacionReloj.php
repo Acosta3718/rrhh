@@ -62,21 +62,14 @@ class MarcacionReloj
         $inicioPeriodo = new DateTime(sprintf('%04d-%02d-01 00:00:00', $anio, $mes));
         $finPeriodo = (clone $inicioPeriodo)->modify('first day of next month');
 
-        $statement = $db->pdo()->prepare(
-            'SELECT DATE(check_time) AS fecha, MIN(check_time) AS primera, MAX(check_time) AS ultima '
-            . 'FROM marcaciones_reloj '
-            . 'WHERE nro_id_reloj = :nro_id_reloj AND check_time >= :inicio AND check_time < :fin '
-            . 'GROUP BY DATE(check_time) '
-            . 'ORDER BY fecha ASC'
+        $registrosPorDia = self::obtenerHorasPorDia(
+            $db,
+            $nroIdReloj,
+            $inicioPeriodo,
+            (clone $finPeriodo)->modify('-1 second')
         );
-        $statement->execute([
-            ':nro_id_reloj' => $nroIdReloj,
-            ':inicio' => $inicioPeriodo->format('Y-m-d H:i:s'),
-            ':fin' => $finPeriodo->format('Y-m-d H:i:s')
-        ]);
-        $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-        if (empty($rows)) {
+        if (empty($registrosPorDia)) {
             return ['movimientos' => [], 'total_creditos' => 0.0, 'total_debitos' => 0.0];
         }
 
@@ -84,8 +77,17 @@ class MarcacionReloj
         $minutosSalidaAnticipada = 0;
         $minutosExtra = 0;
 
-        foreach ($rows as $row) {
-            $fecha = new DateTime($row['fecha'] ?? 'now');
+        foreach ($registrosPorDia as $registro) {
+            $fechaRaw = $registro['fecha'] ?? '';
+            if ($fechaRaw === '') {
+                continue;
+            }
+
+            $fecha = new DateTime($fechaRaw);
+
+            if (!(bool) ($registro['aplicar'] ?? true)) {
+                continue;
+            }
 
             if ($turno->fechaInicio && $fecha < $turno->fechaInicio) {
                 continue;
@@ -94,8 +96,14 @@ class MarcacionReloj
                 continue;
             }
 
-            $primera = isset($row['primera']) ? new DateTime($row['primera']) : null;
-            $ultima = isset($row['ultima']) ? new DateTime($row['ultima']) : null;
+            $entradaRaw = trim((string) ($registro['entrada'] ?? ''));
+            $salidaRaw = trim((string) ($registro['salida'] ?? ''));
+            if ($entradaRaw === '' || $salidaRaw === '') {
+                continue;
+            }
+
+            $primera = DateTime::createFromFormat('Y-m-d H:i', $fecha->format('Y-m-d') . ' ' . $entradaRaw);
+            $ultima = DateTime::createFromFormat('Y-m-d H:i', $fecha->format('Y-m-d') . ' ' . $salidaRaw);
             if (!$primera || !$ultima) {
                 continue;
             }
