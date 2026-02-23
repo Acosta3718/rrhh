@@ -258,17 +258,10 @@ class MarcacionesController extends Controller
 
     private function calcularMinutosTrabajadosDia(array $registro): int
     {
-        $segmentos = [
-            [$registro['entrada'] ?? null, $registro['salida_almuerzo'] ?? null],
-            [$registro['entrada_almuerzo'] ?? null, $registro['salida'] ?? null]
-        ];
-
-        $total = 0;
-        foreach ($segmentos as [$inicio, $fin]) {
-            $total += $this->calcularMinutosSegmento($inicio, $fin);
-        }
-
-        return $total;
+        return $this->calcularMinutosSegmento(
+            $registro['entrada'] ?? null,
+            $registro['salida'] ?? null
+        );
     }
 
     private function calcularMinutosSegmento(?string $inicio, ?string $fin): int

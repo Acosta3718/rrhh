@@ -46,33 +46,44 @@ class MarcacionDiaria
 
     public static function upsert(Database $db, array $data): void
     {
-        $statement = $db->pdo()->prepare(
-            'UPDATE marcaciones_reloj_diarias SET '
-            . 'funcionario_id = :funcionario_id, '
-            . 'entrada = :entrada, '
-            . 'salida_almuerzo = :salida_almuerzo, '
-            . 'entrada_almuerzo = :entrada_almuerzo, '
-            . 'salida = :salida, '
-            . 'aplicar = :aplicar, '
-            . 'actualizado_en = :actualizado_en, '
-            . 'actualizado_por = :actualizado_por '
-            . 'WHERE nro_id_reloj = :nro_id_reloj AND fecha = :fecha'
+        $statementExiste = $db->pdo()->prepare(
+            'SELECT id FROM marcaciones_reloj_diarias '
+            . 'WHERE nro_id_reloj = :nro_id_reloj AND fecha = :fecha '
+            . 'ORDER BY actualizado_en DESC, creado_en DESC, id DESC '
+            . 'LIMIT 1'
         );
-
-        $statement->execute([
+        $statementExiste->execute([
             ':nro_id_reloj' => $data['nro_id_reloj'],
-            ':funcionario_id' => $data['funcionario_id'],
-            ':fecha' => $data['fecha'],
-            ':entrada' => $data['entrada'],
-            ':salida_almuerzo' => $data['salida_almuerzo'],
-            ':entrada_almuerzo' => $data['entrada_almuerzo'],
-            ':salida' => $data['salida'],
-            ':aplicar' => $data['aplicar'] ? 1 : 0,
-            ':actualizado_en' => $data['actualizado_en'],
-            ':actualizado_por' => $data['actualizado_por']
+            ':fecha' => $data['fecha']
         ]);
+        $registroId = $statementExiste->fetchColumn();
 
-        if ($statement->rowCount() > 0) {
+        if ($registroId) {
+            $statement = $db->pdo()->prepare(
+                'UPDATE marcaciones_reloj_diarias SET '
+                . 'funcionario_id = :funcionario_id, '
+                . 'entrada = :entrada, '
+                . 'salida_almuerzo = :salida_almuerzo, '
+                . 'entrada_almuerzo = :entrada_almuerzo, '
+                . 'salida = :salida, '
+                . 'aplicar = :aplicar, '
+                . 'actualizado_en = :actualizado_en, '
+                . 'actualizado_por = :actualizado_por '
+                . 'WHERE id = :id'
+            );
+
+            $statement->execute([
+                ':id' => $registroId,
+                ':funcionario_id' => $data['funcionario_id'],
+                ':entrada' => $data['entrada'],
+                ':salida_almuerzo' => $data['salida_almuerzo'],
+                ':entrada_almuerzo' => $data['entrada_almuerzo'],
+                ':salida' => $data['salida'],
+                ':aplicar' => $data['aplicar'] ? 1 : 0,
+                ':actualizado_en' => $data['actualizado_en'],
+                ':actualizado_por' => $data['actualizado_por']
+            ]);
+
             return;
         }
 

@@ -31,26 +31,22 @@ function minutosAHoras(int $minutos): string
 
 function calcularMinutosRegistro(array $registro): int
 {
-    $segmentos = [
-        [$registro['entrada'] ?? null, $registro['salida_almuerzo'] ?? null],
-        [$registro['entrada_almuerzo'] ?? null, $registro['salida'] ?? null]
-    ];
+    $entrada = $registro['entrada'] ?? null;
+    $salida = $registro['salida'] ?? null;
 
-    $total = 0;
-    foreach ($segmentos as [$inicio, $fin]) {
-        if (!$inicio || !$fin) {
-            continue;
-        }
-        $inicioObj = DateTime::createFromFormat('H:i', $inicio);
-        $finObj = DateTime::createFromFormat('H:i', $fin);
-        if (!$inicioObj || !$finObj) {
-            continue;
-        }
-        $minutos = (int) round(($finObj->getTimestamp() - $inicioObj->getTimestamp()) / 60);
-        $total += max(0, $minutos);
+    if (!$entrada || !$salida) {
+        return 0;
     }
 
-    return $total;
+    $entradaObj = DateTime::createFromFormat('H:i', $entrada);
+    $salidaObj = DateTime::createFromFormat('H:i', $salida);
+    if (!$entradaObj || !$salidaObj) {
+        return 0;
+    }
+
+    $minutos = (int) round(($salidaObj->getTimestamp() - $entradaObj->getTimestamp()) / 60);
+
+    return max(0, $minutos);
 }
 
 $nombreDias = [
