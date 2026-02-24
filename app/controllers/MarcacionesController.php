@@ -9,6 +9,7 @@ use App\Models\Feriado;
 use App\Models\Funcionario;
 use App\Models\MarcacionDiaria;
 use App\Models\MarcacionReloj;
+use App\Models\Turno;
 use DateTime;
 use DatePeriod;
 use DateInterval;
@@ -88,6 +89,7 @@ class MarcacionesController extends Controller
         $diasPeriodo = [];
         $feriados = [];
         $totalMinutosPeriodo = 0;
+        $turnoAsignado = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Auth::requirePermission($this->db, 'marcaciones.editar', $this->baseUrl());
@@ -111,6 +113,10 @@ class MarcacionesController extends Controller
             $nroIdReloj = trim((string) ($funcionarioSeleccionado?->nroIdReloj ?? ''));
             if ($nroIdReloj === '') {
                 $errores['funcionario_id'] = 'Seleccione un funcionario con ID de reloj.';
+            }
+
+            if ($funcionarioSeleccionado?->turnoId) {
+                $turnoAsignado = Turno::find($this->db, (int) $funcionarioSeleccionado->turnoId);
             }
         } elseif ($fechaInicio || $fechaFin) {
             $errores['funcionario_id'] = 'Seleccione un funcionario válido.';
@@ -159,7 +165,8 @@ class MarcacionesController extends Controller
             'horasPorDia' => $horasPorDia,
             'diasPeriodo' => $diasPeriodo,
             'feriados' => $feriados,
-            'totalMinutosPeriodo' => $totalMinutosPeriodo
+            'totalMinutosPeriodo' => $totalMinutosPeriodo,
+            'turnoAsignado' => $turnoAsignado
         ]);
     }
 
@@ -258,10 +265,26 @@ class MarcacionesController extends Controller
 
     private function calcularMinutosTrabajadosDia(array $registro): int
     {
-        return $this->calcularMinutosSegmento(
+        $minutosManana = $this->calcularMinutosSegmento(
+            $registro['entrada'] ?? null,
+            $registro['salida_almuerzo'] ?? null
+        );
+
+        $minutosTarde = $this->calcularMinutosSegmento(
+            $registro['entrada_almuerzo'] ?? null,
+            $registro['salida'] ?? null
+        );
+
+        $minutosJornadaCompleta = $this->calcularMinutosSegmento(
             $registro['entrada'] ?? null,
             $registro['salida'] ?? null
         );
+
+        if ($minutosManana === 0 && $minutosTarde === 0) {
+            return $minutosJornadaCompleta;
+        }
+
+        return $minutosManana + $minutosTarde;
     }
 
     private function calcularMinutosSegmento(?string $inicio, ?string $fin): int
@@ -270,8 +293,8 @@ class MarcacionesController extends Controller
             return 0;
         }
 
-        $inicioObj = DateTime::createFromFormat('H:i', $inicio);
-        $finObj = DateTime::createFromFormat('H:i', $fin);
+        $inicioObj = $this->parseHora($inicio);
+        $finObj = $this->parseHora($fin);
         if (!$inicioObj || !$finObj) {
             return 0;
         }
@@ -279,6 +302,28 @@ class MarcacionesController extends Controller
         $diferencia = (int) round(($finObj->getTimestamp() - $inicioObj->getTimestamp()) / 60);
 
         return max(0, $diferencia);
+    }
+
+    private function parseHora(?string $hora): ?DateTime
+    {
+        if (!$hora) {
+            return null;
+        }
+
+        $hora = trim($hora);
+        if ($hora === '') {
+            return null;
+        }
+
+        $formatos = ['H:i:s', 'H:i'];
+        foreach ($formatos as $formato) {
+            $horaObj = DateTime::createFromFormat($formato, $hora);
+            if ($horaObj instanceof DateTime) {
+                return $horaObj;
+            }
+        }
+
+        return null;
     }
 
     private function consumeFlash(): ?string

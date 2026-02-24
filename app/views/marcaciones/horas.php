@@ -7,6 +7,7 @@ $fechaFin = $fechaFin ?? '';
 $horasPorDia = $horasPorDia ?? [];
 $diasPeriodo = $diasPeriodo ?? [];
 $feriados = $feriados ?? [];
+$turnoAsignado = $turnoAsignado ?? null;
 $mensaje = $mensaje ?? null;
 $totalMinutosPeriodo = (int) ($totalMinutosPeriodo ?? 0);
 $funcionarioLabel = '';
@@ -29,24 +30,51 @@ function minutosAHoras(int $minutos): string
     return sprintf('%02d:%02d', $horas, $resto);
 }
 
+function parseHora(?string $hora): ?DateTime
+{
+    if (!$hora) {
+        return null;
+    }
+
+    $hora = trim($hora);
+    if ($hora === '') {
+        return null;
+    }
+
+    foreach (['H:i:s', 'H:i'] as $formato) {
+        $horaObj = DateTime::createFromFormat($formato, $hora);
+        if ($horaObj instanceof DateTime) {
+            return $horaObj;
+        }
+    }
+
+    return null;
+}
+
 function calcularMinutosRegistro(array $registro): int
 {
-    $entrada = $registro['entrada'] ?? null;
-    $salida = $registro['salida'] ?? null;
+    $calcularSegmento = static function (?string $inicio, ?string $fin): int {
+        if (!$inicio || !$fin) {
+            return 0;
+        }
 
-    if (!$entrada || !$salida) {
-        return 0;
+    $inicioObj = parseHora($inicio);
+        $finObj = parseHora($fin);
+        if (!$inicioObj || !$finObj) {
+            return 0;
+        }
+
+    return max(0, (int) round(($finObj->getTimestamp() - $inicioObj->getTimestamp()) / 60));
+    };
+
+    $minutosManana = $calcularSegmento($registro['entrada'] ?? null, $registro['salida_almuerzo'] ?? null);
+    $minutosTarde = $calcularSegmento($registro['entrada_almuerzo'] ?? null, $registro['salida'] ?? null);
+
+    if ($minutosManana === 0 && $minutosTarde === 0) {
+        return $calcularSegmento($registro['entrada'] ?? null, $registro['salida'] ?? null);
     }
 
-    $entradaObj = DateTime::createFromFormat('H:i', $entrada);
-    $salidaObj = DateTime::createFromFormat('H:i', $salida);
-    if (!$entradaObj || !$salidaObj) {
-        return 0;
-    }
-
-    $minutos = (int) round(($salidaObj->getTimestamp() - $entradaObj->getTimestamp()) / 60);
-
-    return max(0, $minutos);
+    return $minutosManana + $minutosTarde;
 }
 
 $nombreDias = [
@@ -149,6 +177,23 @@ $nombreDias = [
                                     $observacion = 'No trabajado';
                                 }
                                 $minutosDia = $registro ? calcularMinutosRegistro($registro) : 0;
+                                $minutosEsperadosDia = 0;
+                                if ($turnoAsignado) {
+                                    $horarioTurno = $turnoAsignado->obtenerHorarioParaFecha($dia);
+                                    if ((bool) ($horarioTurno['activo'] ?? false)) {
+                                        $minutosEsperadosDia = calcularMinutosRegistro([
+                                            'entrada' => $horarioTurno['hora_entrada'] ?? null,
+                                            'salida_almuerzo' => $horarioTurno['hora_salida_almuerzo'] ?? null,
+                                            'entrada_almuerzo' => $horarioTurno['hora_retorno_almuerzo'] ?? null,
+                                            'salida' => $horarioTurno['hora_salida'] ?? null
+                                        ]);
+                                    }
+                                }
+
+                                $claseTotalHoras = '';
+                                if ($minutosEsperadosDia > 0) {
+                                    $claseTotalHoras = $minutosDia >= $minutosEsperadosDia ? 'table-success' : 'table-danger';
+                                }
                                 ?>
                                 <tr>
                                     <td><?php echo htmlspecialchars($nombreDias[$diaSemana] ?? ''); ?></td>
@@ -168,7 +213,7 @@ $nombreDias = [
                                     <td>
                                         <input type="time" class="form-control form-control-sm" name="salida[<?php echo htmlspecialchars($fechaKey); ?>]" value="<?php echo htmlspecialchars($registro['salida'] ?? ''); ?>">
                                     </td>
-                                    <td class="fw-semibold text-nowrap"><?php echo htmlspecialchars(minutosAHoras($minutosDia)); ?></td>
+                                    <td class="fw-semibold text-nowrap <?php echo htmlspecialchars($claseTotalHoras); ?>"><?php echo htmlspecialchars(minutosAHoras($minutosDia)); ?></td>
                                     <td class="text-center">
                                         <?php $aplicarMarcacion = $registro['aplicar'] ?? true; ?>
                                         <input class="form-check-input" type="checkbox" name="aplicar[<?php echo htmlspecialchars($fechaKey); ?>]" <?php echo $aplicarMarcacion ? 'checked' : ''; ?>>
