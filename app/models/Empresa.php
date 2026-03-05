@@ -13,6 +13,8 @@ class Empresa
         public string $correo,
         public string $telefono,
         public string $direccion,
+        public bool $finSemanaSabado = false,
+        public bool $finSemanaDomingo = false,
         public ?int $id = null
     ) {
     }
@@ -38,7 +40,8 @@ class Empresa
     public function save(Database $db): bool
     {
         $statement = $db->pdo()->prepare(
-            'INSERT INTO empresas (razon_social, ruc, correo, telefono, direccion) VALUES (:razon_social, :ruc, :correo, :telefono, :direccion)'
+            'INSERT INTO empresas (razon_social, ruc, correo, telefono, direccion, fin_semana_sabado, fin_semana_domingo) '
+            . 'VALUES (:razon_social, :ruc, :correo, :telefono, :direccion, :fin_semana_sabado, :fin_semana_domingo)'
         );
 
         $result = $statement->execute([
@@ -46,7 +49,9 @@ class Empresa
             ':ruc' => $this->ruc,
             ':correo' => $this->correo,
             ':telefono' => $this->telefono,
-            ':direccion' => $this->direccion
+            ':direccion' => $this->direccion,
+            ':fin_semana_sabado' => $this->finSemanaSabado ? 1 : 0,
+            ':fin_semana_domingo' => $this->finSemanaDomingo ? 1 : 0
         ]);
 
         if ($result) {
@@ -63,7 +68,8 @@ class Empresa
         }
 
         $statement = $db->pdo()->prepare(
-            'UPDATE empresas SET razon_social = :razon_social, ruc = :ruc, correo = :correo, telefono = :telefono, direccion = :direccion WHERE id = :id'
+            'UPDATE empresas SET razon_social = :razon_social, ruc = :ruc, correo = :correo, telefono = :telefono, direccion = :direccion, '
+            . 'fin_semana_sabado = :fin_semana_sabado, fin_semana_domingo = :fin_semana_domingo WHERE id = :id'
         );
 
         return $statement->execute([
@@ -72,13 +78,17 @@ class Empresa
             ':correo' => $this->correo,
             ':telefono' => $this->telefono,
             ':direccion' => $this->direccion,
+            ':fin_semana_sabado' => $this->finSemanaSabado ? 1 : 0,
+            ':fin_semana_domingo' => $this->finSemanaDomingo ? 1 : 0,
             ':id' => $this->id
         ]);
     }
 
     public static function all(Database $db): array
     {
-        $statement = $db->pdo()->query('SELECT id, razon_social, ruc, correo, telefono, direccion FROM empresas ORDER BY id DESC');
+        $statement = $db->pdo()->query(
+            'SELECT id, razon_social, ruc, correo, telefono, direccion, fin_semana_sabado, fin_semana_domingo FROM empresas ORDER BY id DESC'
+        );
         $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
 
         return array_map(fn(array $row) => self::fromRow($row), $rows);
@@ -87,7 +97,8 @@ class Empresa
     public static function paginate(Database $db, int $limit, int $offset): array
     {
         $statement = $db->pdo()->prepare(
-            'SELECT id, razon_social, ruc, correo, telefono, direccion FROM empresas ORDER BY id DESC LIMIT :limit OFFSET :offset'
+            'SELECT id, razon_social, ruc, correo, telefono, direccion, fin_semana_sabado, fin_semana_domingo '
+            . 'FROM empresas ORDER BY id DESC LIMIT :limit OFFSET :offset'
         );
         $statement->bindValue(':limit', $limit, PDO::PARAM_INT);
         $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
@@ -105,7 +116,9 @@ class Empresa
 
     public static function find(Database $db, int $id): ?self
     {
-        $statement = $db->pdo()->prepare('SELECT id, razon_social, ruc, correo, telefono, direccion FROM empresas WHERE id = :id');
+        $statement = $db->pdo()->prepare(
+            'SELECT id, razon_social, ruc, correo, telefono, direccion, fin_semana_sabado, fin_semana_domingo FROM empresas WHERE id = :id'
+        );
         $statement->execute([':id' => $id]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
 
@@ -146,6 +159,8 @@ class Empresa
             correo: $row['correo'],
             telefono: $row['telefono'] ?? '',
             direccion: $row['direccion'] ?? '',
+            finSemanaSabado: isset($row['fin_semana_sabado']) ? (bool) $row['fin_semana_sabado'] : false,
+            finSemanaDomingo: isset($row['fin_semana_domingo']) ? (bool) $row['fin_semana_domingo'] : false,
             id: (int) $row['id']
         );
     }

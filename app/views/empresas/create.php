@@ -37,6 +37,19 @@
         <input type="text" name="direccion" class="form-control" required value="<?php echo htmlspecialchars($empresa->direccion ?? ''); ?>">
         <?php if (!empty($errores['direccion'])): ?><div class="text-danger small"><?php echo $errores['direccion']; ?></div><?php endif; ?>
     </div>
+    <div class="col-md-12">
+        <label class="form-label d-block">Fin de semana laboral</label>
+        <div class="d-flex gap-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="fin_semana_sabado" id="fin_semana_sabado" <?php echo !empty($empresa?->finSemanaSabado) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="fin_semana_sabado">Sábado</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="fin_semana_domingo" id="fin_semana_domingo" <?php echo !empty($empresa?->finSemanaDomingo) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="fin_semana_domingo">Domingo</label>
+            </div>
+        </div>
+    </div>
     <div class="col-12">
         <button class="btn btn-success" type="submit"><?php echo $modoEdicion ? 'Actualizar' : 'Guardar'; ?></button>
         <?php if ($modoEdicion): ?>

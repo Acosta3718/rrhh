@@ -114,7 +114,8 @@ class MarcacionDiaria
         Database $db,
         string $nroIdReloj,
         DateTime $fecha,
-        ?int $funcionarioId = null
+        ?int $funcionarioId = null,
+        ?bool $aplicar = null
     ): void {
         $statement = $db->pdo()->prepare(
             'SELECT check_time FROM marcaciones_reloj '
@@ -143,7 +144,7 @@ class MarcacionDiaria
             'salida_almuerzo' => $horas['salida_almuerzo'],
             'entrada_almuerzo' => $horas['entrada_almuerzo'],
             'salida' => $horas['salida'],
-            'aplicar' => true,
+            'aplicar' => $aplicar ?? true,
             'creado_en' => date('Y-m-d H:i:s'),
             'actualizado_en' => date('Y-m-d H:i:s'),
             'actualizado_por' => null

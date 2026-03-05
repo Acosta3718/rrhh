@@ -31,6 +31,10 @@ class Funcionario
         public ?int $turnoId = null,
         public ?string $turnoNombre = null,
         public ?string $empresaNombre = null,
+        public bool $finSemanaSabado = false,
+        public bool $finSemanaDomingo = false,
+        public bool $empresaFinSemanaSabado = false,
+        public bool $empresaFinSemanaDomingo = false,
         public ?int $id = null
     ) {
     }
@@ -98,8 +102,8 @@ class Funcionario
     public function save(Database $db): bool
     {
         $statement = $db->pdo()->prepare(
-            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, estado, adelanto, tiene_ips, calcula_ips_total, calcula_ips_minimo, fecha_salida, nro_id_reloj, turno_id) '
-            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :estado, :adelanto, :tiene_ips, :calcula_ips_total, :calcula_ips_minimo, :fecha_salida, :nro_id_reloj, :turno_id)'
+            'INSERT INTO funcionarios (nombre, cargo, nro_documento, direccion, celular, salario, fecha_ingreso, empresa_id, fecha_nacimiento, nacionalidad_id, estado_civil, estado, adelanto, tiene_ips, calcula_ips_total, calcula_ips_minimo, fecha_salida, nro_id_reloj, turno_id, fin_semana_sabado, fin_semana_domingo) '
+            . 'VALUES (:nombre, :cargo, :nro_documento, :direccion, :celular, :salario, :fecha_ingreso, :empresa_id, :fecha_nacimiento, :nacionalidad_id, :estado_civil, :estado, :adelanto, :tiene_ips, :calcula_ips_total, :calcula_ips_minimo, :fecha_salida, :nro_id_reloj, :turno_id, :fin_semana_sabado, :fin_semana_domingo)'
         );
 
         $resultado = $statement->execute([
@@ -121,7 +125,9 @@ class Funcionario
             ':calcula_ips_minimo' => $this->calculaIpsMinimo ? 1 : 0,
             ':fecha_salida' => $this->fechaSalida?->format('Y-m-d'),
             ':nro_id_reloj' => $this->nroIdReloj,
-            ':turno_id' => $this->turnoId
+            ':turno_id' => $this->turnoId,
+            ':fin_semana_sabado' => $this->finSemanaSabado ? 1 : 0,
+            ':fin_semana_domingo' => $this->finSemanaDomingo ? 1 : 0
         ]);
 
         if ($resultado) {
@@ -138,7 +144,7 @@ class Funcionario
         }
 
         $statement = $db->pdo()->prepare(
-            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, estado = :estado, adelanto = :adelanto, tiene_ips = :tiene_ips, calcula_ips_total = :calcula_ips_total, calcula_ips_minimo = :calcula_ips_minimo, fecha_salida = :fecha_salida, nro_id_reloj = :nro_id_reloj, turno_id = :turno_id WHERE id = :id'
+            'UPDATE funcionarios SET nombre = :nombre, cargo = :cargo, nro_documento = :nro_documento, direccion = :direccion, celular = :celular, salario = :salario, fecha_ingreso = :fecha_ingreso, empresa_id = :empresa_id, fecha_nacimiento = :fecha_nacimiento, nacionalidad_id = :nacionalidad_id, estado_civil = :estado_civil, estado = :estado, adelanto = :adelanto, tiene_ips = :tiene_ips, calcula_ips_total = :calcula_ips_total, calcula_ips_minimo = :calcula_ips_minimo, fecha_salida = :fecha_salida, nro_id_reloj = :nro_id_reloj, turno_id = :turno_id, fin_semana_sabado = :fin_semana_sabado, fin_semana_domingo = :fin_semana_domingo WHERE id = :id'
         );
 
         return $statement->execute([
@@ -161,6 +167,8 @@ class Funcionario
             ':fecha_salida' => $this->fechaSalida?->format('Y-m-d'),
             ':nro_id_reloj' => $this->nroIdReloj,
             ':turno_id' => $this->turnoId,
+            ':fin_semana_sabado' => $this->finSemanaSabado ? 1 : 0,
+            ':fin_semana_domingo' => $this->finSemanaDomingo ? 1 : 0,
             ':id' => $this->id
         ]);
     }
@@ -173,7 +181,7 @@ class Funcionario
     public static function find(Database $db, int $id): ?self
     {
         $statement = $db->pdo()->prepare(
-            'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, t.nombre AS turno_nombre FROM funcionarios f '
+            'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, e.fin_semana_sabado AS empresa_fin_semana_sabado, e.fin_semana_domingo AS empresa_fin_semana_domingo, t.nombre AS turno_nombre FROM funcionarios f '
             . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
             . 'LEFT JOIN empresas e ON f.empresa_id = e.id '
             . 'LEFT JOIN turnos t ON t.id = f.turno_id WHERE f.id = :id'
@@ -207,7 +215,7 @@ class Funcionario
         ?int $limit = null,
         ?int $offset = null
     ): array {
-        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, t.nombre AS turno_nombre FROM funcionarios f '
+        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, e.fin_semana_sabado AS empresa_fin_semana_sabado, e.fin_semana_domingo AS empresa_fin_semana_domingo, t.nombre AS turno_nombre FROM funcionarios f '
             . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
             . 'LEFT JOIN empresas e ON f.empresa_id = e.id '
             . 'LEFT JOIN turnos t ON t.id = f.turno_id WHERE 1=1';
@@ -248,7 +256,7 @@ class Funcionario
 
     public static function conIdReloj(Database $db): array
     {
-        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, t.nombre AS turno_nombre FROM funcionarios f '
+        $sql = 'SELECT f.*, n.nombre AS nacionalidad_nombre, e.razon_social AS empresa_nombre, e.fin_semana_sabado AS empresa_fin_semana_sabado, e.fin_semana_domingo AS empresa_fin_semana_domingo, t.nombre AS turno_nombre FROM funcionarios f '
             . 'LEFT JOIN nacionalidades n ON f.nacionalidad_id = n.id '
             . 'LEFT JOIN empresas e ON f.empresa_id = e.id '
             . 'LEFT JOIN turnos t ON t.id = f.turno_id '
@@ -302,6 +310,41 @@ class Funcionario
         return (bool) $statement->fetchColumn();
     }
 
+
+    public function tieneFinDeSemanaLaboralEmpresa(): bool
+    {
+        return $this->empresaFinSemanaSabado || $this->empresaFinSemanaDomingo;
+    }
+
+    public function aplicaEnFecha(DateTime $fecha): bool
+    {
+        $diaSemana = (int) $fecha->format('w');
+        if ($diaSemana >= 1 && $diaSemana <= 5) {
+            return true;
+        }
+
+        [$aplicaSabado, $aplicaDomingo] = $this->obtenerConfiguracionFinDeSemana();
+
+        if ($diaSemana === 6) {
+            return $aplicaSabado;
+        }
+
+        if ($diaSemana === 0) {
+            return $aplicaDomingo;
+        }
+
+        return true;
+    }
+
+    private function obtenerConfiguracionFinDeSemana(): array
+    {
+        if ($this->tieneFinDeSemanaLaboralEmpresa()) {
+            return [$this->empresaFinSemanaSabado, $this->empresaFinSemanaDomingo];
+        }
+
+        return [$this->finSemanaSabado, $this->finSemanaDomingo];
+    }
+
     private static function fromRow(array $row): self
     {
         return new self(
@@ -327,6 +370,10 @@ class Funcionario
             turnoId: isset($row['turno_id']) ? (int) $row['turno_id'] : null,
             turnoNombre: $row['turno_nombre'] ?? null,
             empresaNombre: $row['empresa_nombre'] ?? null,
+            finSemanaSabado: isset($row['fin_semana_sabado']) ? (bool) $row['fin_semana_sabado'] : false,
+            finSemanaDomingo: isset($row['fin_semana_domingo']) ? (bool) $row['fin_semana_domingo'] : false,
+            empresaFinSemanaSabado: isset($row['empresa_fin_semana_sabado']) ? (bool) $row['empresa_fin_semana_sabado'] : false,
+            empresaFinSemanaDomingo: isset($row['empresa_fin_semana_domingo']) ? (bool) $row['empresa_fin_semana_domingo'] : false,
             id: isset($row['id']) ? (int) $row['id'] : null
         );
     }

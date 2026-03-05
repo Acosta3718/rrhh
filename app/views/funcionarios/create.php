@@ -23,6 +23,9 @@ if (!$empresaSeleccionada && !empty($funcionario?->empresaId)) {
         }
     }
 }
+$empresaDefineFinDeSemana = !empty($funcionario?->empresaFinSemanaSabado) || !empty($funcionario?->empresaFinSemanaDomingo);
+$finSemanaSabadoChecked = $empresaDefineFinDeSemana ? !empty($funcionario?->empresaFinSemanaSabado) : !empty($funcionario?->finSemanaSabado);
+$finSemanaDomingoChecked = $empresaDefineFinDeSemana ? !empty($funcionario?->empresaFinSemanaDomingo) : !empty($funcionario?->finSemanaDomingo);
 ?>
 
 <form method="post" class="row g-3 mb-4">
@@ -131,10 +134,24 @@ if (!$empresaSeleccionada && !empty($funcionario?->empresaId)) {
         <input type="hidden" name="empresa_id" id="empresa_id" value="<?php echo htmlspecialchars($funcionario?->empresaId ?? ''); ?>" required>
         <datalist id="empresa_list">
             <?php foreach ($empresas as $empresa): ?>
-                <option value="<?php echo htmlspecialchars($empresa->razonSocial); ?>" data-id="<?php echo $empresa->id; ?>"></option>
+                <option value="<?php echo htmlspecialchars($empresa->razonSocial); ?>" data-id="<?php echo $empresa->id; ?>" data-fin-semana-sabado="<?php echo $empresa->finSemanaSabado ? '1' : '0'; ?>" data-fin-semana-domingo="<?php echo $empresa->finSemanaDomingo ? '1' : '0'; ?>"></option>
             <?php endforeach; ?>
         </datalist>
         <?php if (!empty($errores['empresa_id'])): ?><div class="text-danger small"><?php echo $errores['empresa_id']; ?></div><?php endif; ?>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label d-block">Fin de semana laboral</label>
+        <div class="d-flex gap-4">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="fin_semana_sabado" id="fin_semana_sabado" <?php echo $finSemanaSabadoChecked ? 'checked' : ''; ?> <?php echo $empresaDefineFinDeSemana ? 'disabled' : ''; ?>>
+                <label class="form-check-label" for="fin_semana_sabado">Sábado</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="fin_semana_domingo" id="fin_semana_domingo" <?php echo $finSemanaDomingoChecked ? 'checked' : ''; ?> <?php echo $empresaDefineFinDeSemana ? 'disabled' : ''; ?>>
+                <label class="form-check-label" for="fin_semana_domingo">Domingo</label>
+            </div>
+        </div>
+        <div class="form-text">Si la empresa define fin de semana laboral, esta configuración se aplica a todos los funcionarios.</div>
     </div>
     <div class="col-md-4">
         <label class="form-label">Estado *</label>
@@ -208,6 +225,8 @@ const empresaSearch = document.getElementById('empresa_search');
 const empresaHidden = document.getElementById('empresa_id');
 const empresaList = document.getElementById('empresa_list');
 const form = document.querySelector('form');
+const finSemanaSabadoInput = document.getElementById('fin_semana_sabado');
+const finSemanaDomingoInput = document.getElementById('fin_semana_domingo');
 
 function buscarEmpresa(valor) {
     if (!empresaList) {
@@ -227,8 +246,35 @@ function sincronizarEmpresa() {
     }
 }
 
-empresaSearch?.addEventListener('input', sincronizarEmpresa);
-empresaSearch?.addEventListener('change', sincronizarEmpresa);
+empresaSearch?.addEventListener('input', () => { sincronizarEmpresa(); actualizarFinDeSemanaPorEmpresa(); });
+empresaSearch?.addEventListener('change', () => { sincronizarEmpresa(); actualizarFinDeSemanaPorEmpresa(); });
+
+function actualizarFinDeSemanaPorEmpresa() {
+    const valor = empresaSearch.value.trim();
+    const match = buscarEmpresa(valor);
+    if (!finSemanaSabadoInput || !finSemanaDomingoInput) {
+        return;
+    }
+
+    if (!match) {
+        finSemanaSabadoInput.disabled = false;
+        finSemanaDomingoInput.disabled = false;
+        return;
+    }
+
+    const sabadoEmpresa = match.dataset.finSemanaSabado === '1';
+    const domingoEmpresa = match.dataset.finSemanaDomingo === '1';
+    const empresaDefine = sabadoEmpresa || domingoEmpresa;
+
+    finSemanaSabadoInput.disabled = empresaDefine;
+    finSemanaDomingoInput.disabled = empresaDefine;
+
+    if (empresaDefine) {
+        finSemanaSabadoInput.checked = sabadoEmpresa;
+        finSemanaDomingoInput.checked = domingoEmpresa;
+    }
+}
+
 
 const tieneIpsInput = document.getElementById('tiene_ips');
 const calculaIpsTotalInput = document.getElementById('calcula_ips_total');
@@ -259,11 +305,13 @@ calculaIpsMinimoInput?.addEventListener('change', manejarIpsExclusivo);
 
 document.addEventListener('DOMContentLoaded', () => {
     sincronizarEmpresa();
+    actualizarFinDeSemanaPorEmpresa();
     actualizarIpsChecks();
 });
 
 form?.addEventListener('submit', (event) => {
     sincronizarEmpresa();
+    actualizarFinDeSemanaPorEmpresa();
     if (!form.checkValidity()) {
         event.preventDefault();
         form.reportValidity();

@@ -137,7 +137,8 @@ class MarcacionesController extends Controller
                         $this->db,
                         (string) $funcionarioSeleccionado->nroIdReloj,
                         $inicio,
-                        $fin
+                        $fin,
+                        $funcionarioSeleccionado
                     );
                     $feriados = Feriado::listarPorRango($this->db, $inicio, $fin);
                     $periodo = new DatePeriod($inicio, new DateInterval('P1D'), (clone $fin)->modify('+1 day'));
@@ -246,11 +247,17 @@ class MarcacionesController extends Controller
         foreach ($fechasAActualizar as $nroIdReloj => $fechas) {
             foreach ($fechas as $fechaData) {
                 $fecha = new DateTime($fechaData['fecha'] . ' 00:00:00');
+                $funcionarioImportado = null;
+                if (!empty($fechaData['funcionario_id'])) {
+                    $funcionarioImportado = Funcionario::find($this->db, (int) $fechaData['funcionario_id']);
+                }
+
                 MarcacionDiaria::sincronizarDesdeReloj(
                     $this->db,
                     $nroIdReloj,
                     $fecha,
-                    $fechaData['funcionario_id']
+                    $fechaData['funcionario_id'],
+                    $funcionarioImportado?->aplicaEnFecha($fecha)
                 );
             }
         }

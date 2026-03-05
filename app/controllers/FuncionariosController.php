@@ -161,6 +161,11 @@ class FuncionariosController extends Controller
         $tieneIps = isset($_POST['tiene_ips']);
         $calculaIpsTotal = $tieneIps && isset($_POST['calcula_ips_total']);
         $calculaIpsMinimo = $tieneIps && isset($_POST['calcula_ips_minimo']);
+        $empresaId = (int) ($_POST['empresa_id'] ?? 0);
+        $empresa = $empresaId > 0 ? Empresa::find($this->db, $empresaId) : null;
+        $empresaDefineFinDeSemana = (bool) ($empresa?->finSemanaSabado || $empresa?->finSemanaDomingo);
+        $finSemanaSabado = $empresaDefineFinDeSemana ? (bool) $empresa?->finSemanaSabado : isset($_POST['fin_semana_sabado']);
+        $finSemanaDomingo = $empresaDefineFinDeSemana ? (bool) $empresa?->finSemanaDomingo : isset($_POST['fin_semana_domingo']);
 
         return new Funcionario(
             nombre: $_POST['nombre'] ?? '',
@@ -170,7 +175,7 @@ class FuncionariosController extends Controller
             celular: $_POST['celular'] ?? '',
             salario: (float) ($_POST['salario'] ?? 0),
             fechaIngreso: $fechaIngreso,
-            empresaId: (int) ($_POST['empresa_id'] ?? 0),
+            empresaId: $empresaId,
             fechaNacimiento: $fechaNacimiento,
             nacionalidadId: !empty($_POST['nacionalidad_id']) ? (int) $_POST['nacionalidad_id'] : null,
             estadoCivil: $_POST['estado_civil'] ?? 'soltero',
@@ -182,6 +187,8 @@ class FuncionariosController extends Controller
             fechaSalida: $fechaSalida,
             nroIdReloj: !empty($_POST['nro_id_reloj']) ? trim((string) $_POST['nro_id_reloj']) : null,
             turnoId: !empty($_POST['turno_id']) ? (int) $_POST['turno_id'] : null,
+            finSemanaSabado: $finSemanaSabado,
+            finSemanaDomingo: $finSemanaDomingo,
             id: $id
         );
     }

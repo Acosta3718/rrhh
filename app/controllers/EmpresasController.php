@@ -136,6 +136,8 @@ class EmpresasController extends Controller
             correo: $_POST['correo'] ?? '',
             telefono: $_POST['telefono'] ?? '',
             direccion: $_POST['direccion'] ?? '',
+            finSemanaSabado: isset($_POST['fin_semana_sabado']),
+            finSemanaDomingo: isset($_POST['fin_semana_domingo']),
             id: $id
         );
     }

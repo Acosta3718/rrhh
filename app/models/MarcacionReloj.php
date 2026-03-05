@@ -66,7 +66,8 @@ class MarcacionReloj
             $db,
             $nroIdReloj,
             $inicioPeriodo,
-            (clone $finPeriodo)->modify('-1 second')
+            (clone $finPeriodo)->modify('-1 second'),
+            $funcionario
         );
 
         if (empty($registrosPorDia)) {
@@ -178,7 +179,8 @@ class MarcacionReloj
         Database $db,
         string $nroIdReloj,
         DateTime $inicio,
-        DateTime $fin
+        DateTime $fin,
+        ?Funcionario $funcionario = null
     ): array {
         $diarias = MarcacionDiaria::obtenerPorRango($db, $nroIdReloj, $inicio, $fin);
         
@@ -220,10 +222,26 @@ class MarcacionReloj
                 'salida_almuerzo' => $horas['salida_almuerzo'],
                 'entrada_almuerzo' => $horas['entrada_almuerzo'],
                 'salida' => $horas['salida'],
-                'aplicar' => true
+                'aplicar' => self::debeAplicarEnFecha($funcionario, $fecha)
             ];
         }
 
         return $resultado;
+    }
+
+    private static function debeAplicarEnFecha(?Funcionario $funcionario, string $fecha): bool
+    {
+        try {
+            $fechaObj = new DateTime($fecha . ' 00:00:00');
+        } catch (\Exception $e) {
+            return true;
+        }
+
+        if ($funcionario) {
+            return $funcionario->aplicaEnFecha($fechaObj);
+        }
+
+        $diaSemana = (int) $fechaObj->format('w');
+        return $diaSemana >= 1 && $diaSemana <= 5;
     }
 }
